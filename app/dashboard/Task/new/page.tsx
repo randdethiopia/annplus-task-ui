@@ -1,16 +1,35 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { IslandCard } from "@/components/icard";
+import { createTaskSchema, type CreateTaskInput } from "@/types/task";
 
 export default function NewTaskPage() {
+	const {
+		register,
+		handleSubmit,
+		formState: { errors, isSubmitting },
+	} = useForm<CreateTaskInput>({
+		resolver: zodResolver(createTaskSchema),
+	});
+
+	const onSubmit = (values: CreateTaskInput) => {
+		console.log("Create task", values);
+	};
+
 	return (
 		<div className="min-h-screen bg-[radial-gradient(circle_at_top,#e7f0ff,transparent_45%),linear-gradient(180deg,#eef5ff_0%,#f8fbff_55%,#ffffff_100%)] px-4 py-6 sm:px-6 lg:px-10">
-			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+			<form
+				className="mx-auto flex w-full max-w-5xl flex-col gap-6"
+				onSubmit={handleSubmit(onSubmit)}
+			>
 				<header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 					<div className="space-y-2">
 						<p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-500">
@@ -24,10 +43,18 @@ export default function NewTaskPage() {
 						</p>
 					</div>
 					<div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-						<Button variant="outline" className="h-11 rounded-xl px-5">
+						<Button
+							variant="outline"
+							className="h-11 rounded-xl px-5"
+							type="button"
+						>
 							Save Draft
 						</Button>
-						<Button className="h-11 rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-700">
+						<Button
+							className="h-11 rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-700"
+							type="submit"
+							disabled={isSubmitting}
+						>
 							Publish Task
 						</Button>
 					</div>
@@ -47,22 +74,56 @@ export default function NewTaskPage() {
 								</div>
 								<div className="grid gap-4 sm:grid-cols-2">
 									<div className="sm:col-span-2">
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+											htmlFor="task-title"
+										>
 											Task Title
 										</label>
 										<Input
+											id="task-title"
 											placeholder="Street sign collection"
 											className="mt-2 h-12 rounded-xl"
+											aria-invalid={!!errors.title}
+											aria-describedby={
+												errors.title ? "task-title-error" : undefined
+											}
+											{...register("title")}
 										/>
+										{errors.title?.message && (
+											<p
+												id="task-title-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.title.message}
+											</p>
+										)}
 									</div>
 									<div className="sm:col-span-2">
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+											htmlFor="task-description"
+										>
 											Description
 										</label>
 										<Textarea
+											id="task-description"
 											placeholder="Explain the goal, coverage area, and any special instructions."
 											className="mt-2 min-h-[130px] rounded-2xl"
+											aria-invalid={!!errors.description}
+											aria-describedby={
+												errors.description ? "task-description-error" : undefined
+											}
+											{...register("description")}
 										/>
+										{errors.description?.message && (
+											<p
+												id="task-description-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.description.message}
+											</p>
+										)}
 									</div>
 								</div>
 							</section>
@@ -73,47 +134,119 @@ export default function NewTaskPage() {
 								</h2>
 								<div className="grid gap-4 sm:grid-cols-2">
 									<div>
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+											htmlFor="task-media-type"
+										>
 											Media Type
 										</label>
-										<NativeSelect className="mt-2 h-12 w-full rounded-xl">
+										<NativeSelect
+											id="task-media-type"
+											className="mt-2 h-12 w-full rounded-xl"
+											aria-invalid={!!errors.mediaType}
+											aria-describedby={
+												errors.mediaType ? "task-media-type-error" : undefined
+											}
+											{...register("mediaType")}
+										>
 											<NativeSelectOption value="IMAGE">Image</NativeSelectOption>
 											<NativeSelectOption value="VIDEO">Video</NativeSelectOption>
 											<NativeSelectOption value="AUDIO">Audio</NativeSelectOption>
 											<NativeSelectOption value="TEXT">Text</NativeSelectOption>
 											<NativeSelectOption value="DOC">Document</NativeSelectOption>
 										</NativeSelect>
+										{errors.mediaType?.message && (
+											<p
+												id="task-media-type-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.mediaType.message}
+											</p>
+										)}
 									</div>
 									<div>
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+											htmlFor="task-target-submissions"
+										>
 											Target Submissions
 										</label>
 										<Input
 											type="number"
 											min={1}
+											id="task-target-submissions"
 											placeholder="150"
 											className="mt-2 h-12 rounded-xl"
+											aria-invalid={!!errors.targetSubmissions}
+											aria-describedby={
+												errors.targetSubmissions
+												? "task-target-submissions-error"
+												: undefined
+											}
+											{...register("targetSubmissions")}
 										/>
+										{errors.targetSubmissions?.message && (
+											<p
+												id="task-target-submissions-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.targetSubmissions.message}
+											</p>
+										)}
 									</div>
 								</div>
 								<div className="grid gap-4 sm:grid-cols-2">
 									<div>
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+											htmlFor="task-min-quality"
+										>
 											Minimum Quality
 										</label>
 										<Input
+											id="task-min-quality"
 											placeholder="1080p, clear, no blur"
 											className="mt-2 h-12 rounded-xl"
+											aria-invalid={!!errors.minQuality}
+											aria-describedby={
+												errors.minQuality ? "task-min-quality-error" : undefined
+											}
+											{...register("minQuality")}
 										/>
+										{errors.minQuality?.message && (
+											<p
+												id="task-min-quality-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.minQuality.message}
+											</p>
+										)}
 									</div>
 									<div>
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+											htmlFor="task-deadline"
+										>
 											Deadline
 										</label>
 										<Input
 											type="date"
+											id="task-deadline"
 											className="mt-2 h-12 rounded-xl"
+											aria-invalid={!!errors.deadline}
+											aria-describedby={
+												errors.deadline ? "task-deadline-error" : undefined
+											}
+											{...register("deadline")}
 										/>
+										{errors.deadline?.message && (
+											<p
+												id="task-deadline-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.deadline.message}
+											</p>
+										)}
 									</div>
 								</div>
 							</section>
@@ -124,35 +257,94 @@ export default function NewTaskPage() {
 								</h2>
 								<div className="grid gap-4 sm:grid-cols-2">
 									<div>
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+											htmlFor="task-collectors-needed"
+										>
 											Collectors Needed
 										</label>
 										<Input
 											type="number"
 											min={1}
+											id="task-collectors-needed"
 											placeholder="5"
 											className="mt-2 h-12 rounded-xl"
+											aria-invalid={!!errors.collectorsNeeded}
+											aria-describedby={
+												errors.collectorsNeeded
+												? "task-collectors-needed-error"
+												: undefined
+											}
+											{...register("collectorsNeeded")}
 										/>
+										{errors.collectorsNeeded?.message && (
+											<p
+												id="task-collectors-needed-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.collectorsNeeded.message}
+											</p>
+										)}
 									</div>
 									<div>
-										<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+										<label
+											className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+											htmlFor="task-review-policy"
+										>
 											Review Policy
 										</label>
-										<NativeSelect className="mt-2 h-12 w-full rounded-xl">
+										<NativeSelect
+											id="task-review-policy"
+											className="mt-2 h-12 w-full rounded-xl"
+											aria-invalid={!!errors.reviewPolicy}
+											aria-describedby={
+												errors.reviewPolicy
+												? "task-review-policy-error"
+												: undefined
+											}
+											{...register("reviewPolicy")}
+										>
 											<NativeSelectOption value="manual">Manual approval</NativeSelectOption>
 											<NativeSelectOption value="auto">Auto-approve</NativeSelectOption>
 											<NativeSelectOption value="hybrid">Hybrid review</NativeSelectOption>
 										</NativeSelect>
+										{errors.reviewPolicy?.message && (
+											<p
+												id="task-review-policy-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.reviewPolicy.message}
+											</p>
+										)}
 									</div>
 								</div>
 								<div>
-									<label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+									<label
+										className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+										htmlFor="task-internal-notes"
+									>
 										Internal Notes
 									</label>
 									<Textarea
+										id="task-internal-notes"
 										placeholder="Add reviewer guidance or internal tags."
 										className="mt-2 min-h-[110px] rounded-2xl"
+										aria-invalid={!!errors.internalNotes}
+										aria-describedby={
+												errors.internalNotes
+												? "task-internal-notes-error"
+												: undefined
+											}
+										{...register("internalNotes")}
 									/>
+									{errors.internalNotes?.message && (
+										<p
+											id="task-internal-notes-error"
+											className="mt-2 text-xs font-semibold text-rose-500"
+										>
+											{errors.internalNotes.message}
+										</p>
+									)}
 								</div>
 							</section>
 						</div>
@@ -196,7 +388,7 @@ export default function NewTaskPage() {
 						</IslandCard>
 					</aside>
 				</div>
-			</div>
+			</form>
 		</div>
 	);
 }

@@ -51,9 +51,9 @@ export const CollectorSchema = z.object({
   stats: CollectorStatsSchema.optional(),
 });
 
-// --- 4. RELATIONSHIP SCHEMAS
 
-/
+
+
 export const TaskWithRelationsSchema = TaskSchema.extend({
   collectors: z.array(CollectorSchema).optional(),
   submissions: z.array(SubmissionSchema).optional(),
@@ -65,7 +65,7 @@ export const CollectorWithRelationsSchema = CollectorSchema.extend({
   submissions: z.array(SubmissionSchema).optional(),
 });
 
-// --- 5. EXPORTED TYPES ---
+
 export type Task = z.infer<typeof TaskSchema>;
 export type TaskWithRelations = z.infer<typeof TaskWithRelationsSchema>;
 export type Collector = z.infer<typeof CollectorSchema>;
