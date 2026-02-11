@@ -111,12 +111,7 @@ export default function SubmissionsPage() {
 							</p>
 						</div>
 						<div className="flex flex-wrap gap-2">
-							<Badge className="rounded-full bg-blue-600/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700">
-								Queue Ready
-							</Badge>
-							<Badge className="rounded-full bg-slate-900/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600">
-								Auto Sorted
-							</Badge>
+							
 						</div>
 					</div>
 				</header>
