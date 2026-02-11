@@ -9,6 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import {
 	Table,
@@ -425,77 +433,6 @@ export default function SubmissionsPage() {
 									</Button>
 								</div>
 
-								{reviewOpen && (
-									<div className="rounded-2xl border border-slate-200 bg-white p-4">
-										{previewSubmission.status === "PENDING" ? (
-											<div className="space-y-4">
-												<div>
-													<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-														Decision
-													</p>
-													<div className="mt-2 flex gap-2">
-														<Button
-															variant={
-																reviewStatus === "APPROVED" ? "default" : "outline"
-															}
-															className={cn(
-																"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
-																reviewStatus === "APPROVED"
-																	? "bg-emerald-600 text-white hover:bg-emerald-500"
-																	: "border-slate-200 text-slate-500"
-															)}
-															onClick={() => setReviewStatus("APPROVED")}
-														>
-															Approve
-														</Button>
-														<Button
-															variant={
-																reviewStatus === "REJECTED" ? "default" : "outline"
-															}
-															className={cn(
-																"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
-																reviewStatus === "REJECTED"
-																	? "bg-red-600 text-white hover:bg-red-500"
-																	: "border-slate-200 text-slate-500"
-															)}
-															onClick={() => setReviewStatus("REJECTED")}
-														>
-															Reject
-														</Button>
-													</div>
-												</div>
-
-												<div>
-													<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-														Feedback Note
-													</p>
-													<Textarea
-														value={reviewNote}
-														onChange={(event) => setReviewNote(event.target.value)}
-														placeholder="Add a note for the collector"
-														className="mt-2 min-h-24 rounded-2xl border-slate-200 bg-white"
-													/>
-												</div>
-												<Button
-													className="h-10 rounded-full"
-													onClick={handleSubmitReview}
-													disabled={reviewMutation.isPending}
-												>
-													Submit Review
-												</Button>
-											</div>
-										) : (
-											<div>
-												<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-													Reviewer Note
-												</p>
-												<p className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-													{previewSubmission.approverNote?.trim() || "No feedback provided."}
-												</p>
-											</div>
-										)}
-									</div>
-								)}
 							</div>
 						) : (
 							<div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm font-medium text-slate-400">
@@ -561,6 +498,90 @@ export default function SubmissionsPage() {
 					) : null}
 				</DialogContent>
 			</Dialog>
+
+			<Sheet open={reviewOpen} onOpenChange={setReviewOpen}>
+				<SheetContent className="gap-0">
+					<SheetHeader className="border-b border-slate-200 pb-4">
+						<SheetTitle className="text-lg font-bold text-slate-900">
+							Review Submission
+						</SheetTitle>
+						<SheetDescription>
+							Add feedback and finalize your decision.
+						</SheetDescription>
+					</SheetHeader>
+
+					<div className="flex flex-1 flex-col gap-6 overflow-auto px-4 py-5">
+						{previewSubmission?.status === "PENDING" ? (
+							<div className="space-y-4">
+								<div>
+									<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+										Decision
+									</p>
+									<div className="mt-2 flex gap-2">
+										<Button
+											variant={reviewStatus === "APPROVED" ? "default" : "outline"}
+											className={cn(
+												"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
+												reviewStatus === "APPROVED"
+													? "bg-emerald-600 text-white hover:bg-emerald-500"
+													: "border-slate-200 text-slate-500"
+											)}
+											onClick={() => setReviewStatus("APPROVED")}
+										>
+											Approve
+										</Button>
+										<Button
+											variant={reviewStatus === "REJECTED" ? "default" : "outline"}
+											className={cn(
+												"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
+												reviewStatus === "REJECTED"
+													? "bg-red-600 text-white hover:bg-red-500"
+													: "border-slate-200 text-slate-500"
+											)}
+											onClick={() => setReviewStatus("REJECTED")}
+										>
+											Reject
+										</Button>
+									</div>
+								</div>
+
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+									Feedback Note
+								</p>
+								<Textarea
+									value={reviewNote}
+									onChange={(event) => setReviewNote(event.target.value)}
+									placeholder="Add a note for the collector"
+									className="mt-2 min-h-24 rounded-2xl border-slate-200 bg-white"
+								/>
+							</div>
+						</div>
+					) : (
+						<div>
+							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+								Reviewer Note
+							</p>
+							<p className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+								{previewSubmission?.approverNote?.trim() || "No feedback provided."}
+							</p>
+						</div>
+					)}
+					</div>
+
+					{previewSubmission?.status === "PENDING" && (
+						<SheetFooter className="border-t border-slate-200 p-4">
+							<Button
+								className="h-10 rounded-full"
+								onClick={handleSubmitReview}
+								disabled={reviewMutation.isPending}
+							>
+								Submit Review
+							</Button>
+						</SheetFooter>
+					)}
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 }
