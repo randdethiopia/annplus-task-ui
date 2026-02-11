@@ -24,7 +24,7 @@ export const sidebarItems: SidebarItem[] = [
     {
         key: "submissions",
         label: "Submissions",
-        href: "/dashboard/submissions",
+        href: "/dashboard/submission",
         roles: ["admin", "manager", "collector"],
     },
     {

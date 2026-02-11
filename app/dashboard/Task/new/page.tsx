@@ -32,10 +32,10 @@ export default function NewTaskPage() {
 			>
 				<header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 					<div className="space-y-2">
-						<p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-500">
+						<p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">
 							New Task
 						</p>
-						<h1 className="text-3xl font-black tracking-tight text-slate-800 sm:text-4xl">
+						<h1 className="text-1xl font-black tracking-tight text-slate-600 sm:text-4xl">
 							Create task
 						</h1>
 						<p className="max-w-2xl text-sm font-medium text-slate-500 sm:text-base">
