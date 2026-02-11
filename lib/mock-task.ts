@@ -6,8 +6,8 @@ export const MOCK_TASKS: TaskWithRelations[] = [
   {
     id: "task-1",
     title: "Street Sign Collection",
-    description: "Take photos of all stop signs in the neighborhood.",
-    mediaType: "IMAGE",
+    description: "Record short clips of street signs in the neighborhood.",
+    mediaType: "VIDEO",
     createdById: "admin-1",
     createdAt: new Date().toISOString(),
     _count: { collectors: 2, submissions: 150 },

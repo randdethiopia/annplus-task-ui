@@ -11,7 +11,7 @@ const resolveSubmission = (submission: (typeof MOCK_SUBMISSIONS)[number]): Submi
 	return {
 		...submission,
 		task: {
-			title: task?.title ?? "Unknown task",
+			title: task ? task?.title : "Unknown task",
 			mediaType: task?.mediaType ?? "UNKNOWN",
 		},
 		collector: {
