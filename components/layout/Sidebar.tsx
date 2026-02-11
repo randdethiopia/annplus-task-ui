@@ -34,7 +34,7 @@ export default function Sidebar() {
     });
 
     return (
-        <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white px-4 py-8 shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
+        <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-slate-200 bg-white px-4 py-8 shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
             <div className="mb-10 px-3">
                 <div className="flex items-center gap-2 mb-1">
                     <div className="h-6 w-1 bg-blue-600 rounded-full" />
@@ -47,7 +47,7 @@ export default function Sidebar() {
                 </p>
             </div>
 
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
                 {visibleItems.map((item) => {
                     const active = pathname?.startsWith(item.href);
                     const Icon = iconMap[item.key] || LayoutDashboard;
