@@ -58,7 +58,7 @@ export default function NewDataCollectorPage() {
               Register collector
             </h1>
             <p className="max-w-2xl text-sm font-medium text-slate-500 sm:text-base">
-              Add a data collector and keep your team organized.
+              Add a data collector 
             </p>
           </div>
         </header>
