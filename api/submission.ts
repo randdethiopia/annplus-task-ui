@@ -1,15 +1,5 @@
 import { axiosInstance } from "@/lib/axios";
-import { MOCK_COLLECTORS, MOCK_SUBMISSIONS, delay } from "@/lib/mock-data";
-import { MOCK_TASKS } from "@/lib/mock-task";
-import type { ReviewSubmissionInput, } from "@/types/submission";
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from "@tanstack/react-query";
-
-const resolveSubmission = (submission: (typeof MOCK_SUBMISSIONS)[number]) => {
-	const task = MOCK_TASKS.find((item) => item.id === submission.taskId);
-	const collector = MOCK_COLLECTORS.find(
-		(item) => item.id === submission.collectorId
-	);	
-};
 
 
 interface Task {
