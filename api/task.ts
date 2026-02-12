@@ -1,31 +1,106 @@
-import { MOCK_TASKS } from "@/lib/mock-task";
-// Update the path below to the correct relative location of 'delay'
-import { delay } from "@/lib/mock-data";
-import type { Task } from "../types/validator";
+import { axiosInstance  as axios } from "@/lib/axios";
+import {
+  UseMutationOptions,
+  UseQueryOptions,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
 
-export const taskApi = {
-  // 1. GET ALL: For the table (Lightweight)
-  getAll: async (): Promise<Task[]> => {
-    await delay(600);
-    return MOCK_TASKS;
+
+type Task = any; 
+type CreateTaskPayload = {
+  title: string;
+  description?: string;
+  mediaType?: "IMAGE" | "VIDEO";
+};
+
+type ToggleActivePayload = {
+  id: string;
+  isActive: boolean;
+};
+
+type AssignPayload = {
+  collectorIds: string[];
+};
+
+
+
+export async function fetchTasks() {
+  return (await axios.get("/api/tasks")).data;
+}
+
+export async function fetchTaskById(id: string) {
+  return (await axios.get(`/api/tasks/${id}`)).data;
+}
+
+export async function createTaskFn(payload: CreateTaskPayload) {
+  return (await axios.post("/api/tasks", payload)).data;
+}
+
+export async function toggleTaskActiveFn(payload: ToggleActivePayload) {
+  return (await axios.patch(`/api/tasks/active/${payload.id}`, { isActive: payload.isActive })).data;
+}
+
+export async function assignUsersToTaskFn(id: string | null, payload: AssignPayload) {
+  return (await axios.post(`/api/tasks/assign/${id}`, { collectorIds: payload.collectorIds })).data;
+}
+
+
+
+const TaskApi = {
+  getAll: {
+    useQuery: (options?: UseQueryOptions<Task[], AxiosError, any>) =>
+      useQuery({
+        queryKey: ["tasks"],
+        queryFn: () => fetchTasks(),
+        ...options,
+      }),
   },
 
-  // 2. GET BY ID: For the Sheet
-  getById: async (id: string): Promise<Task> => {
-    await delay(400);
-    const task = MOCK_TASKS.find((t) => t.id === id);
+  getById: {
+    useQuery: (id: string, options?: UseQueryOptions<Task, AxiosError>) =>
+      useQuery({
+        queryKey: ["tasks", id],
+        queryFn: () => fetchTaskById(id),
+        ...options,
+      }),
+  },
 
-    return (
-      (task as Task) ??
-      ({
-        id,
-        title: "Unknown Task",
-        description: "This task could not be found.",
-        mediaType: "TEXT",
-        createdById: "system",
-        createdAt: new Date().toISOString(),
-        _count: { collectors: 0, submissions: 0 },
-      } as Task)
-    );
+  create: {
+    useMutation: (options?: UseMutationOptions<any, AxiosError, CreateTaskPayload>) =>
+      useMutation({
+        mutationFn: (data) => createTaskFn(data),
+        onSuccess: (data) => {
+          toast("LOADING");
+          toast(data.message);
+        },
+        ...options
+      }),
+  },
+
+  toggleActive: {
+    useMutation: (options?: UseMutationOptions<any, AxiosError, ToggleActivePayload>) =>
+      useMutation({
+        mutationFn: (data) => toggleTaskActiveFn(data),
+        ...options,
+        onSuccess: (data) => {
+        },
+      }),
+  },
+
+  assign: {
+    useMutation: (id: string, options?: UseMutationOptions<any, AxiosError, AssignPayload>) =>
+      useMutation({
+        mutationFn: (data) => assignUsersToTaskFn(id, data),
+        ...options,
+        onSuccess: (data) => {
+          toast("LOADING");
+          toast(data.message);
+        },
+      }),
   },
 };
+
+export default TaskApi;
