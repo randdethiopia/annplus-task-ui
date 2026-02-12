@@ -25,15 +25,16 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useReviewSubmission, useSubmissions } from "@/hooks/submission";
 import type { ReviewSubmissionInput } from "@/types/submission";
 import { cn } from "@/lib/utils";
+import { submissionApi } from "@/api/submission";
 
 const emptyRows = Array.from({ length: 5 }, (_, index) => index);
 
 export default function SubmissionsPage() {
-	const { data: submissions, isLoading } = useSubmissions();
-	const reviewMutation = useReviewSubmission();
+	const { data: submissions, isLoading } = submissionApi.getAll.useQuery();
+
+
 	const [statusFilter, setStatusFilter] = useState<
 		"ALL" | ReviewSubmissionInput["status"]
 	>("ALL");
@@ -45,6 +46,8 @@ export default function SubmissionsPage() {
 	const [reviewStatus, setReviewStatus] = useState<
 		ReviewSubmissionInput["status"]
 	>("APPROVED");
+
+	const { mutate: reviewMutation, isPending } = submissionApi.review.useMutation(reviewTargetId ?? "");
 
 	const sortedSubmissions = useMemo(() => {
 		if (!submissions) return [];
@@ -88,8 +91,10 @@ export default function SubmissionsPage() {
 
 	const handleSubmitReview = () => {
 		if (!reviewTargetId) return;
-		reviewMutation.mutate(
-			{ id: reviewTargetId, data: { status: reviewStatus, approverNote: reviewNote } },
+		reviewMutation({
+				status: reviewStatus,
+				approverNote: reviewNote,
+			},
 			{ onSuccess: () => setReviewOpen(false) }
 		);
 	};
@@ -200,7 +205,6 @@ export default function SubmissionsPage() {
 										))
 									: filteredSubmissions.map((submission) => {
 											const isPending = submission.status === "PENDING";
-											const actionDisabled = reviewMutation.isPending;
 
 											return (
 												<TableRow
@@ -228,7 +232,7 @@ export default function SubmissionsPage() {
 													</TableCell>
 													<TableCell>
 														<a
-															href={submission.uploadUrl}
+															href={submission.uploadUrl ?? undefined}
 															target="_blank"
 															rel="noreferrer"
 															className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
@@ -262,7 +266,6 @@ export default function SubmissionsPage() {
 																	event.stopPropagation();
 																	openReviewDrawer(submission.id, "APPROVED");
 																}}
-																	disabled={actionDisabled}
 																>
 																	<CheckCircle className="h-4 w-4" />
 																</Button>
@@ -273,7 +276,6 @@ export default function SubmissionsPage() {
 																	event.stopPropagation();
 																	openReviewDrawer(submission.id, "REJECTED");
 																}}
-																	disabled={actionDisabled}
 																>
 																	<XCircle className="h-4 w-4" />
 																</Button>
@@ -342,7 +344,7 @@ export default function SubmissionsPage() {
 								<div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
 									{previewSubmission.task.mediaType === "IMAGE" ? (
 										<img
-											src={previewSubmission.uploadUrl}
+											src={previewSubmission.uploadUrl ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/${previewSubmission.uploadUrl}` : " "}
 											alt={previewSubmission.task.title}
 											className="h-48 w-full object-cover"
 										/>
@@ -350,11 +352,11 @@ export default function SubmissionsPage() {
 										<video
 											className="h-48 w-full object-cover"
 											controls
-											src={previewSubmission.uploadUrl}
+											src={previewSubmission.uploadUrl ?? undefined}
 										/>
 									) : previewSubmission.task.mediaType === "AUDIO" ? (
 										<div className="p-4">
-											<audio controls className="w-full" src={previewSubmission.uploadUrl} />
+											<audio controls className="w-full" src={previewSubmission.uploadUrl ?? undefined} />
 										</div>
 									) : (
 										<div className="flex h-48 flex-col items-center justify-center gap-3 p-4 text-center">
@@ -366,7 +368,7 @@ export default function SubmissionsPage() {
 												className="rounded-full border-slate-200"
 												asChild
 											>
-												<a href={previewSubmission.uploadUrl} target="_blank" rel="noreferrer">
+												<a href={previewSubmission.uploadUrl ?? undefined} target="_blank" rel="noreferrer">
 													Open File
 												</a>
 											</Button>
@@ -466,7 +468,7 @@ export default function SubmissionsPage() {
 						<Button
 							className="h-10 rounded-full"
 							onClick={handleSubmitReview}
-							disabled={reviewMutation.isPending}
+							disabled={isPending}
 						>
 							Submit Review
 						</Button>
