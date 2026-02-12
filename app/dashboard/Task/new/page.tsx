@@ -1,6 +1,10 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
@@ -10,28 +14,53 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import TaskApi from "@/api/task";
 import { useRouter } from "next/navigation";
+import { TaskMediaTypeSchema } from "@/types/validator";
 
+const CreateTaskSchema = z.object({
+	title: z.string().trim().min(1, "Task title is required"),
+	description: z.string().trim().min(1, "Description is required"),
+	mediaType: TaskMediaTypeSchema,
+});
 
-interface CreateTaskInput {
-	title: "string",
-	description: "string",
-	mediaType: "IMAGE" | "VIDEO"
-}
-
+type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 
 
 export default function NewTaskPage() {
 	const router = useRouter();
+	const [showSuccess, setShowSuccess] = useState(false);
 
-	const { register, handleSubmit, formState: { errors, isSubmitting }, } = useForm<CreateTaskInput>({
-		defaultValues: { mediaType: "IMAGE" },
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors, isSubmitting },
+	} = useForm<CreateTaskInput>({
+		resolver: zodResolver(CreateTaskSchema),
+		defaultValues: { title: "", description: "", mediaType: "IMAGE" },
 	});
 
 	const { mutate, isPending } = TaskApi.create.useMutation();
 
+	useEffect(() => {
+		if (!showSuccess) return;
+		const timer = window.setTimeout(() => {
+			setShowSuccess(false);
+		}, 4500);
+		return () => window.clearTimeout(timer);
+	}, [showSuccess]);
+
 	const onSubmit = (values: CreateTaskInput) => {
-		mutate(values)
-		router.push("/dashboard/Task")
+		const toastId = toast.loading("Publishing task...");
+		mutate(values, {
+			onSuccess: () => {
+				toast.success("Task published", { id: toastId });
+				reset({ title: "", description: "", mediaType: "IMAGE" });
+				setShowSuccess(true);
+			},
+			onError: () => {
+				toast.error("Failed to publish task", { id: toastId });
+			},
+		});
 	};
 
 	return (
@@ -54,6 +83,40 @@ export default function NewTaskPage() {
 					</div>
 
 				</header>
+
+				{showSuccess && (
+					<IslandCard className="border border-emerald-100 bg-emerald-50/80 px-6 py-5">
+						<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+							<div className="space-y-2">
+								<p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">
+									Task created
+								</p>
+								<h2 className="text-lg font-semibold text-emerald-900">
+									Your task is live and ready for collectors.
+								</h2>
+								<p className="text-sm font-medium text-emerald-700">
+									You can create another one right away.
+								</p>
+							</div>
+							<div className="flex flex-col gap-2 sm:flex-row">
+								<Button
+									className="h-10 rounded-full border border-emerald-200 bg-white/70 px-5 text-emerald-700 hover:bg-white"
+									type="button"
+									onClick={() => setShowSuccess(false)}
+								>
+									Create another task
+								</Button>
+								<Button
+									className="h-10 rounded-full border border-emerald-500 bg-emerald-600 px-5 text-white hover:bg-emerald-500"
+									type="button"
+									onClick={() => router.push("/dashboard/Task")}
+								>
+									View tasks
+								</Button>
+							</div>
+						</div>
+					</IslandCard>
+				)}
 
 				<div className="grid gap-6">
 					<IslandCard className="px-6 py-7 sm:px-8">
@@ -161,7 +224,7 @@ export default function NewTaskPage() {
 									<Button
 										className="h-11 rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-700"
 										type="submit"
-										disabled={isSubmitting}
+										disabled={isSubmitting || isPending}
 									>
 										Publish Task
 									</Button>

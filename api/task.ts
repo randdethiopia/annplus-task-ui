@@ -72,10 +72,6 @@ const TaskApi = {
     useMutation: (options?: UseMutationOptions<any, AxiosError, CreateTaskPayload>) =>
       useMutation({
         mutationFn: (data) => createTaskFn(data),
-        onSuccess: (data) => {
-          toast("LOADING");
-          toast(data.message);
-        },
         ...options
       }),
   },
