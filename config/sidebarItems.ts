@@ -27,10 +27,10 @@ export const sidebarItems: SidebarItem[] = [
         href: "/dashboard/submission",
         roles: ["admin", "manager", "collector"],
     },
-    {
-        key: "users",
-        label: "Users",
-        href: "/dashboard/users",
-        roles: ["admin"],
-    },
+    // {
+    //     key: "users",
+    //     label: "Users",
+    //     href: "/dashboard/users",
+    //     roles: ["admin"],
+    // },
 ];
