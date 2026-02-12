@@ -14,15 +14,8 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import TaskApi from "@/api/task";
 import { useRouter } from "next/navigation";
-import { TaskMediaTypeSchema } from "@/types/validator";
+import {  CreateTaskInput, CreateTaskSchema } from "@/types/validator";
 
-const CreateTaskSchema = z.object({
-	title: z.string().trim().min(1, "Task title is required"),
-	description: z.string().trim().min(1, "Description is required"),
-	mediaType: TaskMediaTypeSchema,
-});
-
-type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 
 
 export default function NewTaskPage() {

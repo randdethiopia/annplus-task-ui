@@ -65,7 +65,13 @@ export const CollectorWithRelationsSchema = CollectorSchema.extend({
   submissions: z.array(SubmissionSchema).optional(),
 });
 
+export const CreateTaskSchema = z.object({
+  title: z.string().trim().min(1, "Task title is required"),
+  description: z.string().trim().min(1, "Description is required"),
+  mediaType: TaskMediaTypeSchema,
+});
 
+export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type TaskWithRelations = z.infer<typeof TaskWithRelationsSchema>;
 export type Collector = z.infer<typeof CollectorSchema>;
