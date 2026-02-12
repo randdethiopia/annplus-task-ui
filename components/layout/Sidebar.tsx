@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { sidebarItems } from "@/config/sidebarItems";
@@ -30,6 +31,10 @@ export default function Sidebar() {
     const { role, hasHydrated } = useAuthStore();
     const { logOut } = authStore();
 
+    const userSectionActive =
+        pathname.startsWith("/dashboard/User") || pathname.startsWith("/dashboard/Users");
+    const [isUserOpen, setIsUserOpen] = useState(userSectionActive);
+
     // 1. Senior Safety: Wait for hydration to prevent errors
     if (!hasHydrated) return null;
 
@@ -38,8 +43,15 @@ export default function Sidebar() {
         return item.roles.includes(role);
     });
 
+    const userItems = [
+        { key: "create-user", label: "Create User", href: "/dashboard/User/create-user" },
+        { key: "users", label: "Users", href: "/dashboard/User/users" },
+    ];
+
+    const canSeeUserSection = ["admin"].includes(role);
+
     return (
-        <aside className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white px-4 py-8 shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
+        <aside className="flex h-screen w-64 flex-col overflow-y-auto overscroll-contain border-r border-slate-200 bg-white px-4 py-8 shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
             <div className="mb-10 px-3">
                 <div className="flex items-center gap-2 mb-1">
                     <div className="h-6 w-1 bg-blue-600 rounded-full" />
@@ -73,6 +85,49 @@ export default function Sidebar() {
                         </Link>
                     );
                 })}
+
+                {canSeeUserSection && (
+                    <div className="mt-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsUserOpen((v) => !v)}
+                            className={cn(
+                                "flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200",
+                                userSectionActive
+                                    ? "bg-blue-50 text-blue-700 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.1)]"
+                                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                            )}
+                        >
+                            <UserCog
+                                className={cn(
+                                    "h-5 w-5",
+                                    userSectionActive ? "text-blue-600" : "text-slate-400"
+                                )}
+                            />
+                            <span className="flex-1 text-left">User</span>
+                            <span className="text-xs">{isUserOpen ? "▾" : "▸"}</span>
+                        </button>
+
+                        {isUserOpen && (
+                            <div className="ml-6 mt-2 flex flex-col gap-1 border-l border-slate-100 pl-3">
+                                {userItems.map((item) => (
+                                    <Link
+                                        key={item.key}
+                                        href={item.href}
+                                        className={cn(
+                                            "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+                                            pathname === item.href
+                                                ? "bg-blue-50 text-blue-700"
+                                                : "text-slate-600 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        {item.label}
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </nav>
 
             <div className="mt-auto p-2 border-t border-slate-50">

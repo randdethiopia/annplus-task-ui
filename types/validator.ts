@@ -71,6 +71,15 @@ export const CreateTaskSchema = z.object({
   mediaType: TaskMediaTypeSchema,
 });
 
+export const CreateUserSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  email: z.string().trim().email("Enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["SUPERVISOR", "ADMIN", "COLLECTOR"]),
+});
+
+export type CreateUserInput = z.infer<typeof CreateUserSchema>;
+
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type TaskWithRelations = z.infer<typeof TaskWithRelationsSchema>;
