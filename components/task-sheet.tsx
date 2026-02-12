@@ -7,10 +7,8 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Added Tabs
-// Update the import path to the correct location of useTaskDetail
-import { useTaskDetail } from "../hooks/task"; // Adjust path if hooks folder is at project root
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
 	ClipboardCheck,
 	FileText,
@@ -22,9 +20,10 @@ import {
 	Info, // Added icon
 	UserCheck // Added icon
 } from "lucide-react";
+import TaskApi from "@/api/task";
 
 type TaskDetailsSheetProps = {
-	id: string | null;
+	id: string;
 	onClose: () => void;
 };
 
@@ -38,7 +37,7 @@ const mediaIcons: Record<string, typeof FileText> = {
 
 export function TaskDetailsSheet({ id, onClose }: TaskDetailsSheetProps) {
 	// Tracker: Fetching the task WITH relations
-	const { data: task, isLoading } = useTaskDetail(id);
+	const { data: task, isLoading } = TaskApi.getById.useQuery(id);
 	const Icon = task?.mediaType ? mediaIcons[task.mediaType] : FileText;
 
 	return (
@@ -102,7 +101,7 @@ export function TaskDetailsSheet({ id, onClose }: TaskDetailsSheetProps) {
 								</h4>
 								
 								{task.collectors && task.collectors.length > 0 ? (
-									task.collectors.map((collector) => (
+									task.collectors.map((collector: any) => (
 										<div 
 											key={collector.id} 
 											className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
