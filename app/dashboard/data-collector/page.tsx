@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Eye, Search } from "lucide-react";
 
-import { CollectorDetailsSheet } from "@/components/collector-sheet";
 import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +15,14 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { useCollectors } from "@/hooks/data-collect";
+import DataCollectorApi from "@/api/data-collector";
+
+
+
 
 export default function DataCollectorsPage() {
-	const { data: collectors, isLoading } = useCollectors();
+	const { data: collectors, isLoading } = DataCollectorApi.getAll.useQuery();
+    
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
 
@@ -135,10 +138,10 @@ export default function DataCollectorsPage() {
 				</div>
 			</IslandCard>
 
-			<CollectorDetailsSheet
+			{/* <CollectorDetailsSheet
 				id={selectedId}
 				onClose={() => setSelectedId(null)}
-			/>
+			/> */}
 		</div>
 	);
 }
