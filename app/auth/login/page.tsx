@@ -38,7 +38,7 @@ export default function LoginPage() {
         toast.success("Signed in successfully", { id: toastId });
         window.setTimeout(() => {
           router.push("/dashboard/Task");
-        }, 600);
+        }, 300);
       },
       onError: () => {
         toast.error("Unable to sign in. Please try again.", { id: toastId });

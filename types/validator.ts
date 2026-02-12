@@ -52,7 +52,13 @@ export const CollectorSchema = z.object({
 });
 
 
+export const CreateCollectorSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  phone: z.string().trim().min(1, "Phone is required"),
+  telegramUsername: z.string().trim().min(1, "Telegram username is required"),
+});
 
+export type CreateCollectorInput = z.infer<typeof CreateCollectorSchema>;
 
 export const TaskWithRelationsSchema = TaskSchema.extend({
   collectors: z.array(CollectorSchema).optional(),

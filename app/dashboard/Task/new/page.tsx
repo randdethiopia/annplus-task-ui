@@ -14,7 +14,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import TaskApi from "@/api/task";
 import { useRouter } from "next/navigation";
-import {  CreateTaskInput, CreateTaskSchema } from "@/types/validator";
+import { TaskMediaTypeSchema, CreateTaskInput, CreateTaskSchema } from "@/types/validator";
 
 
 

@@ -28,12 +28,6 @@ export const useAuthStore = create<AuthState>()(
 
 
 
-
-
-
-
-
-
 interface State {
   _id: string | null;
   accessToken: string | null;
