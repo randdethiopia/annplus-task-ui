@@ -41,13 +41,7 @@ export default function NewTaskPage() {
 
 	const { mutate, isPending } = TaskApi.create.useMutation();
 
-	useEffect(() => {
-		if (!showSuccess) return;
-		const timer = window.setTimeout(() => {
-			setShowSuccess(false);
-		}, 4500);
-		return () => window.clearTimeout(timer);
-	}, [showSuccess]);
+	
 
 	const onSubmit = (values: CreateTaskInput) => {
 		const toastId = toast.loading("Publishing task...");

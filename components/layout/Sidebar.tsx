@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { sidebarItems } from "@/config/sidebarItems";
-import { useAuthStore } from "@/store/authStore";
+import authStore, { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { 
   Users, 
   ClipboardList, 
   CheckSquare, 
   UserCog,
-  LayoutDashboard 
+    LayoutDashboard,
+    LogOut
 } from "lucide-react"; // Import Icons
 
 // Map your keys to actual Lucide components
@@ -23,7 +26,9 @@ const iconMap: Record<string, any> = {
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const { role, hasHydrated } = useAuthStore();
+    const { logOut } = authStore();
 
     // 1. Senior Safety: Wait for hydration to prevent errors
     if (!hasHydrated) return null;
@@ -80,6 +85,21 @@ export default function Sidebar() {
                         <span className="text-[10px] text-slate-400">Online</span>
                     </div>
                 </div>
+                <Button
+                    type="button"
+                    onClick={() => {
+                        const toastId = toast.loading("Signing you out...");
+                        logOut();
+                        toast.success("Signed out", { id: toastId });
+                        window.setTimeout(() => {
+                            router.push("/auth/login");
+                        }, 2500);
+                    }}
+                    className="mt-2 h-10 w-full justify-start gap-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                </Button>
             </div>
         </aside>
     );

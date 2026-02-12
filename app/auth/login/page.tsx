@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
@@ -30,11 +31,18 @@ export default function LoginPage() {
   const { mutate } = AuthApi.login.useMutation();
 
   const onSubmit = async (input: LoginInput) => {
+    const toastId = toast.loading("Signing you in...");
     mutate(input, {
       onSuccess: (data) => {
         setAccessToken( data.user.id, data.token);
-        router.push("/dashboard/Task");
-      }
+        toast.success("Signed in successfully", { id: toastId });
+        window.setTimeout(() => {
+          router.push("/dashboard/Task");
+        }, 600);
+      },
+      onError: () => {
+        toast.error("Unable to sign in. Please try again.", { id: toastId });
+      },
     });
   };
 
