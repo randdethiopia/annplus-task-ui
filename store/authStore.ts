@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware"; // Added persistence
+import { createJSONStorage, devtools, persist } from "zustand/middleware"; // Added persistence
 import type { Role } from "@/types/role";
 
 type AuthState = {
@@ -25,3 +25,51 @@ export const useAuthStore = create<AuthState>()(
         }
     )
 );
+
+
+
+
+
+
+
+
+
+interface State {
+  _id: string | null;
+  accessToken: string | null;
+}
+
+interface Action {
+  setAccessToken: (_id: string, token: string ) => void;
+  logOut: () => void;
+}
+
+const authStore = create<State & Action>()(
+  devtools(
+    persist(
+      (set) => ({
+        _id: null,
+        accessToken: null,
+        role: null,
+
+        setAccessToken(_id: string, accessToken: string) {
+          set(() => ({ _id, accessToken }));
+        },
+
+        logOut() {
+          set({
+            _id: null,
+            accessToken: null,
+          });
+        },
+
+      }),
+      {
+        name: "auth-store",
+        storage: createJSONStorage(() => localStorage),
+      }
+    )
+  )
+);
+
+export default authStore;
