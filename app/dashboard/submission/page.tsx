@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { ExternalLink, CheckCircle, XCircle, Search, Eye } from "lucide-react";
-
 import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,14 +24,32 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import type { ReviewSubmissionInput } from "@/types/submission";
 import { cn } from "@/lib/utils";
 import { submissionApi } from "@/api/submission";
+import { useQueryClient } from "@tanstack/react-query";
 
 const emptyRows = Array.from({ length: 5 }, (_, index) => index);
 
 export default function SubmissionsPage() {
 	const { data: submissions, isLoading } = submissionApi.getAll.useQuery();
+	const queryClient = useQueryClient();
+
+	const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+	const resolveUploadUrl = (url?: string | null) => {
+		if (!url) return undefined;
+		if (url.startsWith("http://") || url.startsWith("https://")) return url;
+		if (!apiBaseUrl) return url;
+		const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+		return `${apiBaseUrl}${normalizedPath}`;
+	};
 
 
 	const [statusFilter, setStatusFilter] = useState<
@@ -46,6 +63,8 @@ export default function SubmissionsPage() {
 	const [reviewStatus, setReviewStatus] = useState<
 		ReviewSubmissionInput["status"]
 	>("APPROVED");
+	const [contentOpen, setContentOpen] = useState(false);
+	const [contentTargetId, setContentTargetId] = useState<string | null>(null);
 
 	const { mutate: reviewMutation, isPending } = submissionApi.review.useMutation(reviewTargetId ?? "");
 
@@ -79,14 +98,31 @@ export default function SubmissionsPage() {
 		return filteredSubmissions[0] ?? null;
 	}, [filteredSubmissions, selectedId]);
 
+	const previewUrl = resolveUploadUrl(previewSubmission?.uploadUrl ?? null);
+	const contentTarget = useMemo(() => {
+		if (!contentTargetId) return null;
+		return submissions?.find((item) => item.id === contentTargetId) ?? null;
+	}, [contentTargetId, submissions]);
+	const contentUrl = resolveUploadUrl(contentTarget?.uploadUrl ?? null);
+	const reviewTargetSubmission = useMemo(() => {
+		if (!reviewTargetId) return null;
+		return submissions?.find((item) => item.id === reviewTargetId) ?? null;
+	}, [reviewTargetId, submissions]);
+
 	const openReviewDrawer = (
 		id: string,
 		status: ReviewSubmissionInput["status"]
 	) => {
+		const target = submissions?.find((item) => item.id === id) ?? null;
 		setReviewTargetId(id);
 		setReviewStatus(status);
-		setReviewNote("");
+		setReviewNote(target?.approverNote ?? "");
 		setReviewOpen(true);
+	};
+
+	const openContentModal = (id: string) => {
+		setContentTargetId(id);
+		setContentOpen(true);
 	};
 
 	const handleSubmitReview = () => {
@@ -95,7 +131,12 @@ export default function SubmissionsPage() {
 				status: reviewStatus,
 				approverNote: reviewNote,
 			},
-			{ onSuccess: () => setReviewOpen(false) }
+			{
+				onSuccess: () => {
+					queryClient.invalidateQueries({ queryKey: ["submissions"] });
+					setReviewOpen(false);
+				},
+			}
 		);
 	};
 
@@ -231,15 +272,17 @@ export default function SubmissionsPage() {
 														</div>
 													</TableCell>
 													<TableCell>
-														<a
-															href={submission.uploadUrl ?? undefined}
-															target="_blank"
-															rel="noreferrer"
+														<button
+															type="button"
 															className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
+															onClick={(event) => {
+																event.stopPropagation();
+																openContentModal(submission.id);
+															}}
 														>
 															View File
 															<ExternalLink className="h-3 w-3" />
-														</a>
+														</button>
 													</TableCell>
 													<TableCell>
 														<Badge
@@ -286,6 +329,7 @@ export default function SubmissionsPage() {
 																	onClick={(event) => {
 																	event.stopPropagation();
 																	setSelectedId(submission.id);
+																	openContentModal(submission.id);
 																}}
 																	title="Preview"
 																>
@@ -325,9 +369,7 @@ export default function SubmissionsPage() {
 								</p>
 								<h2 className="text-lg font-bold text-slate-800">Uploaded File</h2>
 							</div>
-							<Badge className="rounded-full bg-slate-900/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600">
-								Live
-							</Badge>
+							
 						</div>
 
 						{previewSubmission ? (
@@ -341,40 +383,48 @@ export default function SubmissionsPage() {
 									</p>
 								</div>
 
-								<div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-									{previewSubmission.task.mediaType === "IMAGE" ? (
-										<img
-											src={previewSubmission.uploadUrl ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/${previewSubmission.uploadUrl}` : " "}
-											alt={previewSubmission.task.title}
-											className="h-48 w-full object-cover"
-										/>
-									) : previewSubmission.task.mediaType === "VIDEO" ? (
-										<video
-											className="h-48 w-full object-cover"
-											controls
-											src={previewSubmission.uploadUrl ?? undefined}
-										/>
-									) : previewSubmission.task.mediaType === "AUDIO" ? (
-										<div className="p-4">
-											<audio controls className="w-full" src={previewSubmission.uploadUrl ?? undefined} />
+										<div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+											{previewUrl ? (
+												previewSubmission.task.mediaType === "IMAGE" ? (
+													<img
+														src={previewUrl}
+														alt={previewSubmission.task.title}
+														className="h-48 w-full object-cover"
+													/>
+												) : previewSubmission.task.mediaType === "VIDEO" ? (
+													<video
+														className="h-48 w-full object-cover"
+														controls
+														src={previewUrl}
+													/>
+												) : previewSubmission.task.mediaType === "AUDIO" ? (
+													<div className="p-4">
+														<audio controls className="w-full" src={previewUrl} />
+													</div>
+												) : (
+													<div className="flex h-48 flex-col items-center justify-center gap-3 p-4 text-center">
+														<p className="text-sm font-medium text-slate-500">
+															Preview unavailable for this file type.
+														</p>
+														<Button
+															variant="outline"
+															className="rounded-full border-slate-200"
+															asChild
+														>
+															<a href={previewUrl} target="_blank" rel="noreferrer">
+																Open File
+															</a>
+														</Button>
+													</div>
+												)
+											) : (
+												<div className="flex h-48 flex-col items-center justify-center gap-2 p-4 text-center">
+													<p className="text-sm font-medium text-slate-500">
+														File URL not available for preview.
+													</p>
+												</div>
+											)}
 										</div>
-									) : (
-										<div className="flex h-48 flex-col items-center justify-center gap-3 p-4 text-center">
-											<p className="text-sm font-medium text-slate-500">
-												Preview unavailable for this file type.
-											</p>
-											<Button
-												variant="outline"
-												className="rounded-full border-slate-200"
-												asChild
-											>
-												<a href={previewSubmission.uploadUrl ?? undefined} target="_blank" rel="noreferrer">
-													Open File
-												</a>
-											</Button>
-										</div>
-									)}
-								</div>
 
 								<div className="flex items-center justify-between">
 									<Badge
@@ -389,12 +439,21 @@ export default function SubmissionsPage() {
 									>
 										{previewSubmission.status}
 									</Badge>
-									<Button
+											<Button
 										variant="outline"
 										className="rounded-full border-slate-200"
-										onClick={() => openReviewDrawer(previewSubmission.id, "APPROVED")}
+												onClick={() =>
+													openReviewDrawer(
+														previewSubmission.id,
+														previewSubmission.status === "PENDING"
+															? "APPROVED"
+															: previewSubmission.status
+													)
+												}
 									>
-										Review
+												{previewSubmission.status === "PENDING"
+													? "Review"
+													: "View Decision"}
 									</Button>
 								</div>
 							</div>
@@ -419,6 +478,16 @@ export default function SubmissionsPage() {
 					</SheetHeader>
 
 					<div className="flex flex-1 flex-col gap-6 overflow-auto px-4 py-5">
+						{reviewTargetSubmission && reviewTargetSubmission.status !== "PENDING" && (
+							<div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+									Current Decision Note
+								</p>
+								<p className="text-sm font-medium text-slate-700">
+									{reviewTargetSubmission.approverNote?.trim() || "No note provided."}
+								</p>
+							</div>
+						)}
 						<div className="space-y-2">
 							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
 								Decision
@@ -475,6 +544,75 @@ export default function SubmissionsPage() {
 					</SheetFooter>
 				</SheetContent>
 			</Sheet>
+
+			<Dialog open={contentOpen} onOpenChange={setContentOpen}>
+				<DialogContent className="sm:max-w-3xl">
+					<DialogHeader>
+						<DialogTitle>Uploaded Content</DialogTitle>
+						
+					</DialogHeader>
+
+					{contentTarget ? (
+						<div className="space-y-4">
+							<div className="space-y-1">
+								<p className="text-sm font-semibold text-slate-800">
+									{contentTarget.task.title}
+								</p>
+								<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+									{contentTarget.task.mediaType} · {contentTarget.collector.name}
+								</p>
+							</div>
+
+							<div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+								{contentUrl ? (
+									contentTarget.task.mediaType === "IMAGE" ? (
+										<img
+											src={contentUrl}
+											alt={contentTarget.task.title}
+											className="max-h-[60vh] w-full object-contain"
+										/>
+									) : contentTarget.task.mediaType === "VIDEO" ? (
+										<video
+											className="max-h-[60vh] w-full"
+											controls
+											src={contentUrl}
+										/>
+									) : contentTarget.task.mediaType === "AUDIO" ? (
+										<div className="p-4">
+											<audio controls className="w-full" src={contentUrl} />
+										</div>
+									) : (
+										<div className="flex h-48 flex-col items-center justify-center gap-3 p-4 text-center">
+											<p className="text-sm font-medium text-slate-500">
+												Preview unavailable for this file type.
+											</p>
+											<Button
+												variant="outline"
+												className="rounded-full border-slate-200"
+												asChild
+											>
+												<a href={contentUrl} target="_blank" rel="noreferrer">
+													Open File
+												</a>
+											</Button>
+										</div>
+									)
+								) : (
+									<div className="flex h-48 flex-col items-center justify-center gap-2 p-4 text-center">
+										<p className="text-sm font-medium text-slate-500">
+											No content uploaded for this submission.
+										</p>
+									</div>
+								)}
+							</div>
+						</div>
+					) : (
+						<div className="flex h-40 items-center justify-center text-sm text-slate-500">
+							No content selected.
+						</div>
+					)}
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
