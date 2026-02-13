@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -28,22 +28,24 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>();
 
-  const { mutate } = AuthApi.login.useMutation();
+  const { mutateAsync } = AuthApi.login.useMutation();
+
+  useEffect(() => {
+    router.prefetch("/dashboard/Task");
+  }, [router]);
 
   const onSubmit = async (input: LoginInput) => {
     const toastId = toast.loading("Signing you in...");
-    mutate(input, {
-      onSuccess: (data) => {
-        setAccessToken( data.user.id, data.token);
-        toast.success("Signed in successfully", { id: toastId });
-        window.setTimeout(() => {
-          router.push("/dashboard/Task");
-        }, 300);
-      },
-      onError: () => {
-        toast.error("Unable to sign in. Please try again.", { id: toastId });
-      },
-    });
+    setServerError(null);
+    try {
+      const data = await mutateAsync(input);
+      setAccessToken(data.user.id, data.token);
+      toast.success("Signed in successfully", { id: toastId });
+      router.push("/dashboard/Task");
+    } catch (error) {
+      setServerError("Unable to sign in. Please try again.");
+      toast.error("Unable to sign in. Please try again.", { id: toastId });
+    }
   };
 
   return (
