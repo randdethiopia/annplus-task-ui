@@ -20,7 +20,7 @@ const registerCollectorFn = async (data: RegisterCollectorInput) => {
   return response.data;
 };
 
-const getAllCollectorsFn = async (): Promise<Collector[]> => {
+export const getAllCollectorsFn = async (): Promise<Collector[]> => {
   const response = await axios.get("/api/data-collector");
   const data = response.data;
   return Array.isArray(data) ? data : data?.data ?? data?.collectors ?? [];
