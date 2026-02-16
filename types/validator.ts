@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const TaskMediaTypeSchema = z.enum(["IMAGE", "VIDEO"]);
 export const SubmissionStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
+export const TaskStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 
 const CountSchema = z.object({
   tasks: z.number().default(0),
@@ -34,6 +35,7 @@ export const TaskSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   mediaType: TaskMediaTypeSchema,
+  status: TaskStatusSchema.default("PENDING"),
   createdById: z.string(),
   createdAt: z.string().or(z.date()),
   _count: CountSchema.optional(),

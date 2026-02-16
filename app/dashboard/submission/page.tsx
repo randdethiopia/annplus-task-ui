@@ -394,6 +394,16 @@ export default function SubmissionsPage() {
 								)}
 							</TableBody>
 						</Table>
+						<div className="border-t border-slate-100 px-4 py-4">
+							<PaginationControls
+								page={page}
+								pageSize={pageSize}
+								totalItems={filteredSubmissions.length}
+								onPageChange={setPage}
+								className="mt-0"
+								disabled={isLoading}
+							/>
+						</div>
 					</div>
 					<IslandCard className="flex flex-col gap-4 rounded-3xl border border-slate-200/80 bg-white px-5 py-5 shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
 						<div className="flex items-center justify-between">
@@ -497,17 +507,6 @@ export default function SubmissionsPage() {
 							</div>
 						)}
 					</IslandCard>
-				</div>
-
-				<div className="rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.7)]">
-					<PaginationControls
-						page={page}
-						pageSize={pageSize}
-						totalItems={filteredSubmissions.length}
-						onPageChange={setPage}
-						className="mt-0"
-						disabled={isLoading}
-					/>
 				</div>
 			</div>
 
