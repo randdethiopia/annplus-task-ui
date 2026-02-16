@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import TaskApi from "@/api/task";
 import AssignModal from "./assign-modal";
-import DataCollectorApi from "@/api/data-collector";
+import { dataCollectorApi } from "@/api/data-collector";
 
 
 export default function TasksPage() {
@@ -28,7 +28,7 @@ export default function TasksPage() {
     const [search, setSearch] = useState("");
 
     const { data: tasks, isLoading } = TaskApi.getAll.useQuery();
-    const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = DataCollectorApi.getAll.useQuery();
+    const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = dataCollectorApi.getAll.useQuery();
    
 
 

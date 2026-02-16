@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 
-export const TaskMediaTypeSchema = z.enum(["IMAGE", "VIDEO", "AUDIO", "TEXT", "DOC"]);
+export const TaskMediaTypeSchema = z.enum(["IMAGE", "VIDEO"]);
 export const SubmissionStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 
 const CountSchema = z.object({
