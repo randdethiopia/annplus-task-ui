@@ -18,7 +18,7 @@ export const sidebarItems: SidebarItem[] = [
     {
         key: "tasks",
         label: "Tasks",
-        href: "/dashboard/Task",
+        href: "/dashboard/task",
         roles: ["admin", "manager"],
     },
     {

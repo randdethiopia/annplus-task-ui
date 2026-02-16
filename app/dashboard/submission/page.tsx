@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, CheckCircle, XCircle, Search, Eye } from "lucide-react";
 import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
+import PaginationControls from "@/components/shared/paginationControl";
 import {
 	Sheet,
 	SheetContent,
@@ -39,6 +41,8 @@ import { useQueryClient } from "@tanstack/react-query";
 const emptyRows = Array.from({ length: 5 }, (_, index) => index);
 
 export default function SubmissionsPage() {
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
 	const { data: submissions, isLoading } = submissionApi.getAll.useQuery();
 	const queryClient = useQueryClient();
 
@@ -91,12 +95,21 @@ export default function SubmissionsPage() {
 		});
 	}, [sortedSubmissions, searchQuery, statusFilter]);
 
+	useEffect(() => {
+		setPage(1);
+	}, [searchQuery, statusFilter]);
+
+	const pagedSubmissions = useMemo(() => {
+		const startIndex = (page - 1) * pageSize;
+		return filteredSubmissions.slice(startIndex, startIndex + pageSize);
+	}, [filteredSubmissions, page, pageSize]);
+
 	const previewSubmission = useMemo(() => {
 		if (selectedId) {
 			return filteredSubmissions.find((item) => item.id === selectedId) ?? null;
 		}
-		return filteredSubmissions[0] ?? null;
-	}, [filteredSubmissions, selectedId]);
+		return pagedSubmissions[0] ?? filteredSubmissions[0] ?? null;
+	}, [filteredSubmissions, pagedSubmissions, selectedId]);
 
 	const previewUrl = resolveUploadUrl(previewSubmission?.uploadUrl ?? null);
 	const contentTarget = useMemo(() => {
@@ -163,14 +176,37 @@ export default function SubmissionsPage() {
 				</header>
 				<div className="flex flex-col gap-4 rounded-3xl border border-white/70 bg-white/70 px-5 py-4 shadow-[0_16px_45px_-35px_rgba(15,23,42,0.6)] backdrop-blur">
 					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-						<div className="relative w-full md:max-w-sm">
-							<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-							<Input
-								value={searchQuery}
-								onChange={(event) => setSearchQuery(event.target.value)}
-								placeholder="Search by collector or task"
-								className="h-10 rounded-full border-slate-200 bg-white/80 pl-9"
-							/>
+						<div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 md:max-w-2xl">
+							<div className="relative w-full sm:max-w-sm">
+								<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+								<Input
+									value={searchQuery}
+									onChange={(event) => setSearchQuery(event.target.value)}
+									placeholder="Search by collector or task"
+									className="h-10 rounded-full border-slate-200 bg-white/80 pl-9"
+								/>
+							</div>
+							<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+								<span>Rows per page</span>
+								<NativeSelect
+									size="sm"
+									value={pageSize}
+									onChange={(event) => {
+										const nextSize = Number(event.target.value);
+										setPageSize(nextSize);
+										setPage(1);
+									}}
+									disabled={isLoading}
+									className="h-8 rounded-full border-slate-200 bg-white/80 px-3 pr-8 text-xs font-semibold text-slate-600 shadow-none"
+									aria-label="Rows per page"
+								>
+									{[5, 10, 20, 50].map((size) => (
+										<NativeSelectOption key={size} value={size}>
+											{size}
+										</NativeSelectOption>
+									))}
+								</NativeSelect>
+							</div>
 						</div>
 						<div className="flex flex-wrap gap-2">
 							{(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
@@ -195,7 +231,7 @@ export default function SubmissionsPage() {
 				</div>
 
 				<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-					<IslandCard className="px-0 py-0">
+					
 						<div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
 							<Table>
 							<TableHeader className="bg-slate-50">
@@ -244,7 +280,7 @@ export default function SubmissionsPage() {
 												</TableCell>
 											</TableRow>
 										))
-									: filteredSubmissions.map((submission) => {
+									: pagedSubmissions.map((submission) => {
 											const isPending = submission.status === "PENDING";
 
 											return (
@@ -359,8 +395,6 @@ export default function SubmissionsPage() {
 							</TableBody>
 						</Table>
 					</div>
-					</IslandCard>
-
 					<IslandCard className="flex flex-col gap-4 rounded-3xl border border-slate-200/80 bg-white px-5 py-5 shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
 						<div className="flex items-center justify-between">
 							<div>
@@ -463,6 +497,17 @@ export default function SubmissionsPage() {
 							</div>
 						)}
 					</IslandCard>
+				</div>
+
+				<div className="rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.7)]">
+					<PaginationControls
+						page={page}
+						pageSize={pageSize}
+						totalItems={filteredSubmissions.length}
+						onPageChange={setPage}
+						className="mt-0"
+						disabled={isLoading}
+					/>
 				</div>
 			</div>
 

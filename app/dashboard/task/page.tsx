@@ -29,10 +29,6 @@ export default function TasksPage() {
 
     const { data: tasks, isLoading } = TaskApi.getAll.useQuery();
     const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = dataCollectorApi.getAll.useQuery();
-   
-
-
-
     const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
 
     const filteredTasks = useMemo(() => {
