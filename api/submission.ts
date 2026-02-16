@@ -29,7 +29,7 @@ interface Submission {
   taskId: string;
   collectorId: string;
   uploadUrl: string | null;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED'; // adjust as per your enums
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   approverNote: string | null;
   reviewedById: string | null;
   createdAt: string;

@@ -11,14 +11,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DataCollector } from "@/api/data-collector";
+import { Collector } from "@/api/data-collector";
 import TaskApi from "@/api/task";
 
 
 
 type AssignModalProps = {
   open: boolean;
-  users: DataCollector[];
+  users: Collector[];
   taskId: string | null;
   onClose: () => void;
 };
