@@ -9,7 +9,7 @@ export const MOCK_SUBMISSIONS: Submission[] = [
     id: "sub-1",
     taskId: "task-1",
     collectorId: "cl-001", // Abebe
-    uploadUrl: "https://images.unsplash.com/photo-1512314889357-e157c22f938d",
+    uploadUrl: "https://www.youtube.com/watch?v=6AyWxcviAFo&list=RD6AyWxcviAFo&start_radio=1",
     status: "APPROVED",
     createdAt: new Date().toISOString(),
   },

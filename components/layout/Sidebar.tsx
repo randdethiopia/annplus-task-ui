@@ -64,7 +64,7 @@ export default function Sidebar() {
                 </p>
             </div>
 
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
                 {visibleItems.map((item) => {
                     const active = pathname?.startsWith(item.href);
                     const Icon = iconMap[item.key] || LayoutDashboard;

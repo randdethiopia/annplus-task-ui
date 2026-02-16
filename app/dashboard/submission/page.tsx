@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, CheckCircle, XCircle, Search, Eye } from "lucide-react";
+import { CheckCircle, ExternalLink, Eye, Search, XCircle } from "lucide-react";
 
 import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -16,6 +17,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Table,
 	TableBody,
@@ -31,6 +33,21 @@ import { submissionApi } from "@/api/submission";
 
 const emptyRows = Array.from({ length: 5 }, (_, index) => index);
 
+const getYouTubeId = (url: string) => {
+	try {
+		const parsed = new URL(url);
+		if (parsed.hostname.includes("youtu.be")) {
+			return parsed.pathname.replace("/", "");
+		}
+		if (parsed.hostname.includes("youtube.com")) {
+			return parsed.searchParams.get("v") ?? "";
+		}
+		return "";
+	} catch {
+		return "";
+	}
+};
+
 export default function SubmissionsPage() {
 	const { data: submissions, isLoading } = submissionApi.getAll.useQuery();
 
@@ -40,9 +57,9 @@ export default function SubmissionsPage() {
 	>("ALL");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [previewOpen, setPreviewOpen] = useState(false);
 	const [reviewOpen, setReviewOpen] = useState(false);
 	const [reviewNote, setReviewNote] = useState("");
-	const [reviewTargetId, setReviewTargetId] = useState<string | null>(null);
 	const [reviewStatus, setReviewStatus] = useState<
 		ReviewSubmissionInput["status"]
 	>("APPROVED");
@@ -79,14 +96,22 @@ export default function SubmissionsPage() {
 		return filteredSubmissions[0] ?? null;
 	}, [filteredSubmissions, selectedId]);
 
-	const openReviewDrawer = (
-		id: string,
-		status: ReviewSubmissionInput["status"]
-	) => {
-		setReviewTargetId(id);
-		setReviewStatus(status);
-		setReviewNote("");
+	const openPreviewDialog = (id: string) => {
+		setSelectedId(id);
+		setPreviewOpen(true);
+	};
+
+	const openReviewPanel = () => {
+		if (!previewSubmission) return;
 		setReviewOpen(true);
+		setReviewNote(previewSubmission.approverNote ?? "");
+		if (previewSubmission.status === "REJECTED") {
+			setReviewStatus("REJECTED");
+		} else if (previewSubmission.status === "APPROVED") {
+			setReviewStatus("APPROVED");
+		} else {
+			setReviewStatus("APPROVED");
+		}
 	};
 
 	const handleSubmitReview = () => {
@@ -115,11 +140,9 @@ export default function SubmissionsPage() {
 								Assess incoming work, issue approvals, and add feedback when needed.
 							</p>
 						</div>
-						<div className="flex flex-wrap gap-2">
-							
-						</div>
 					</div>
 				</header>
+
 				<div className="flex flex-col gap-4 rounded-3xl border border-white/70 bg-white/70 px-5 py-4 shadow-[0_16px_45px_-35px_rgba(15,23,42,0.6)] backdrop-blur">
 					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 						<div className="relative w-full md:max-w-sm">
@@ -157,25 +180,25 @@ export default function SubmissionsPage() {
 					<IslandCard className="px-0 py-0">
 						<div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
 							<Table>
-							<TableHeader className="bg-slate-50">
-								<TableRow className="border-none">
-									<TableHead className="font-bold text-slate-700">
-										Collector
-									</TableHead>
-									<TableHead className="font-bold text-slate-700">
-										Task
-									</TableHead>
-									<TableHead className="font-bold text-slate-700">
-										Uploaded Content
-									</TableHead>
-									<TableHead className="font-bold text-slate-700">
-										Status
-									</TableHead>
-									<TableHead className="pr-8 text-right font-bold text-slate-700">
-										Review
-									</TableHead>
-								</TableRow>
-							</TableHeader>
+								<TableHeader className="bg-slate-50">
+									<TableRow className="border-none">
+										<TableHead className="font-bold text-slate-700">
+											Collector
+										</TableHead>
+										<TableHead className="font-bold text-slate-700">
+											Task
+										</TableHead>
+										<TableHead className="font-bold text-slate-700">
+											Uploaded Content
+										</TableHead>
+										<TableHead className="font-bold text-slate-700">
+											Status
+										</TableHead>
+										<TableHead className="pr-8 text-right font-bold text-slate-700">
+											Review
+										</TableHead>
+									</TableRow>
+								</TableHeader>
 								<TableBody>
 									{isLoading
 										? emptyRows.map((row) => (
@@ -302,19 +325,19 @@ export default function SubmissionsPage() {
 											);
 										})}
 
-								{!isLoading && filteredSubmissions.length === 0 && (
-									<TableRow>
-										<TableCell
-											colSpan={5}
-											className="h-32 text-center text-sm font-medium text-slate-500"
-										>
-											No submissions to review yet.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-					</div>
+									{!isLoading && filteredSubmissions.length === 0 && (
+										<TableRow>
+											<TableCell
+												colSpan={5}
+												className="h-32 text-center text-sm font-medium text-slate-500"
+											>
+												No submissions to review yet.
+											</TableCell>
+										</TableRow>
+									)}
+								</TableBody>
+							</Table>
+						</div>
 					</IslandCard>
 
 					<IslandCard className="flex flex-col gap-4 rounded-3xl border border-slate-200/80 bg-white px-5 py-5 shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
@@ -336,7 +359,7 @@ export default function SubmissionsPage() {
 									<p className="text-sm font-semibold text-slate-800">
 										{previewSubmission.task.title}
 									</p>
-									<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+									<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-700">
 										{previewSubmission.task.mediaType} · {previewSubmission.collector.name}
 									</p>
 								</div>
@@ -392,11 +415,12 @@ export default function SubmissionsPage() {
 									<Button
 										variant="outline"
 										className="rounded-full border-slate-200"
-										onClick={() => openReviewDrawer(previewSubmission.id, "APPROVED")}
+										onClick={openReviewPanel}
 									>
 										Review
 									</Button>
 								</div>
+
 							</div>
 						) : (
 							<div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm font-medium text-slate-400">
@@ -406,6 +430,62 @@ export default function SubmissionsPage() {
 					</IslandCard>
 				</div>
 			</div>
+
+			<Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+				<DialogContent className="h-[92vh] w-[95vw] max-w-none overflow-hidden p-0">
+					<DialogTitle className="sr-only">Submission preview</DialogTitle>
+					{previewSubmission ? (
+						<div className="flex h-full items-center justify-center bg-slate-50 p-6">
+							<div className="h-full w-full overflow-hidden rounded-2xl border border-slate-200 bg-white">
+								{previewSubmission.task.mediaType === "IMAGE" ? (
+									<img
+										src={previewSubmission.uploadUrl}
+										alt={previewSubmission.task.title}
+										className="h-full w-full object-contain"
+									/>
+								) : previewSubmission.task.mediaType === "VIDEO" ? (
+									(() => {
+										const youtubeId = getYouTubeId(previewSubmission.uploadUrl);
+										if (youtubeId) {
+											return (
+												<iframe
+													className="h-full w-full"
+													src={`https://www.youtube.com/embed/${youtubeId}`}
+													title={previewSubmission.task.title}
+													allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+													allowFullScreen
+												/>
+											);
+										}
+										return (
+											<video
+												className="h-full w-full object-contain"
+												controls
+												src={previewSubmission.uploadUrl}
+											/>
+										);
+									})()
+								) : previewSubmission.task.mediaType === "AUDIO" ? (
+									<div className="p-6">
+										<audio controls className="w-full" src={previewSubmission.uploadUrl} />
+									</div>
+								) : (
+									<div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+										<p className="text-sm font-medium text-slate-500">
+											Preview unavailable for this file type.
+										</p>
+										<Button asChild variant="outline" className="rounded-full border-slate-200">
+											<a href={previewSubmission.uploadUrl} target="_blank" rel="noreferrer">
+												Open File
+											</a>
+										</Button>
+									</div>
+								)}
+							</div>
+						</div>
+					) : null}
+				</DialogContent>
+			</Dialog>
 
 			<Sheet open={reviewOpen} onOpenChange={setReviewOpen}>
 				<SheetContent className="gap-0">
@@ -419,49 +499,62 @@ export default function SubmissionsPage() {
 					</SheetHeader>
 
 					<div className="flex flex-1 flex-col gap-6 overflow-auto px-4 py-5">
-						<div className="space-y-2">
-							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-								Decision
-							</p>
-							<div className="flex gap-2">
-								<Button
-									variant={reviewStatus === "APPROVED" ? "default" : "outline"}
-									className={cn(
-										"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
-										reviewStatus === "APPROVED"
-											? "bg-emerald-600 text-white hover:bg-emerald-500"
-											: "border-slate-200 text-slate-500"
-									)}
-									onClick={() => setReviewStatus("APPROVED")}
-								>
-									Approve
-								</Button>
-								<Button
-									variant={reviewStatus === "REJECTED" ? "default" : "outline"}
-									className={cn(
-										"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
-										reviewStatus === "REJECTED"
-											? "bg-red-600 text-white hover:bg-red-500"
-											: "border-slate-200 text-slate-500"
-									)}
-									onClick={() => setReviewStatus("REJECTED")}
-								>
-									Reject
-								</Button>
+						{previewSubmission?.status === "PENDING" ? (
+							<div className="space-y-4">
+								<div>
+									<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+										Decision
+									</p>
+									<div className="mt-2 flex gap-2">
+										<Button
+											variant={reviewStatus === "APPROVED" ? "default" : "outline"}
+											className={cn(
+												"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
+												reviewStatus === "APPROVED"
+													? "bg-emerald-600 text-white hover:bg-emerald-500"
+													: "border-slate-200 text-slate-500"
+											)}
+											onClick={() => setReviewStatus("APPROVED")}
+										>
+											Approve
+										</Button>
+										<Button
+											variant={reviewStatus === "REJECTED" ? "default" : "outline"}
+											className={cn(
+												"h-9 rounded-full px-4 text-xs font-semibold uppercase tracking-[0.18em]",
+												reviewStatus === "REJECTED"
+													? "bg-red-600 text-white hover:bg-red-500"
+													: "border-slate-200 text-slate-500"
+											)}
+											onClick={() => setReviewStatus("REJECTED")}
+										>
+											Reject
+										</Button>
+									</div>
+								</div>
+
+							<div>
+								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+									Feedback Note
+								</p>
+								<Textarea
+									value={reviewNote}
+									onChange={(event) => setReviewNote(event.target.value)}
+									placeholder="Add a note for the collector"
+									className="mt-2 min-h-24 rounded-2xl border-slate-200 bg-white"
+								/>
 							</div>
 						</div>
-
-						<div className="space-y-2">
+					) : (
+						<div>
 							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-								Feedback Note
+								Reviewer Note
 							</p>
-							<Textarea
-								value={reviewNote}
-								onChange={(event) => setReviewNote(event.target.value)}
-								placeholder="Add a note for the collector"
-								className="min-h-28 rounded-2xl border-slate-200 bg-white"
-							/>
+							<p className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+								{previewSubmission?.approverNote?.trim() || "No feedback provided."}
+							</p>
 						</div>
+					)}
 					</div>
 
 					<SheetFooter className="border-t border-slate-200 p-4">
