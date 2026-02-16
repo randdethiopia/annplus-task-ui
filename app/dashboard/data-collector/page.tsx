@@ -15,13 +15,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import DataCollectorApi from "@/api/data-collector";
-
-
-
+import { dataCollectorApi } from "@/api/data-collector";
+import Link from "next/link";
 
 export default function DataCollectorsPage() {
-	const { data: collectors, isLoading } = DataCollectorApi.getAll.useQuery();
+	const { data: collectors, isLoading } = dataCollectorApi.getAll.useQuery();
     
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [search, setSearch] = useState("");
@@ -59,6 +57,10 @@ export default function DataCollectorsPage() {
 							onChange={(event) => setSearch(event.target.value)}
 						/>
 					</div>
+
+					<Button className="h-11 rounded-xl bg-blue-500 px-5 hover:bg-blue-700">
+						<Link href="/dashboard/data-collector/new">Create collector</Link>
+					</Button>
 				</div>
 
 				<div className="mt-6 overflow-hidden rounded-2xl border border-slate-50">
