@@ -65,16 +65,7 @@ export default function RegisterPage() {
 					<p className="max-w-xl text-sm font-medium text-slate-500">
 						Create your account to receive tasks, submit work, and track approvals.
 					</p>
-					<div className="mx-auto grid max-w-md gap-3 text-left text-sm text-slate-500 lg:mx-0">
-						<div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.6)]">
-							<span className="font-semibold text-slate-700">Fast onboarding</span>
-							<p className="text-xs text-slate-500">Get access to live tasks in minutes.</p>
-						</div>
-						<div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.6)]">
-							<span className="font-semibold text-slate-700">Clear feedback</span>
-							<p className="text-xs text-slate-500">Track approvals and notes in one place.</p>
-						</div>
-					</div>
+					
 				</section>
 
 				<section className="w-full">
@@ -84,9 +75,7 @@ export default function RegisterPage() {
 							<h2 className="text-xl font-bold text-slate-800">
 								Your account details
 							</h2>
-							<p className="mt-1 text-sm text-slate-500">
-								Use a work email you can access.
-							</p>
+							
 
 							<div className="mt-6 space-y-4">
 								<div>
