@@ -3,21 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AuthApi from "@/api/auth";
-
-interface RegisterInput {
-	name: string;
-	email: string;
-	phone: string;
-	telegramUsername: string;
-	password: string;
-	confirmPassword: string;
-}
+import {
+	RegisterCollectorSchema,
+	type RegisterCollectorInput,
+} from "@/types/validator";
 
 export default function RegisterPage() {
 	const router = useRouter();
@@ -26,18 +22,14 @@ export default function RegisterPage() {
 	const {
 		register,
 		handleSubmit,
-		setError,
 		formState: { errors, isSubmitting },
-	} = useForm<RegisterInput>();
+	} = useForm<RegisterCollectorInput>({
+		resolver: zodResolver(RegisterCollectorSchema),
+	});
 
 	const { mutateAsync } = AuthApi.register.useMutation();
 
-	const onSubmit = async (input: RegisterInput) => {
-		if (input.password !== input.confirmPassword) {
-			setError("confirmPassword", { message: "Passwords do not match" });
-			return;
-		}
-
+	const onSubmit = async (input: RegisterCollectorInput) => {
 		const toastId = toast.loading("Creating your account...");
 		setServerError(null);
 		try {
