@@ -18,6 +18,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import TaskApi from "@/api/task";
+import { cn } from "@/lib/utils";
 import AssignModal from "./assign-modal";
 import { dataCollectorApi } from "@/api/data-collector";
 
@@ -26,23 +27,25 @@ export default function TasksPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [ taskToAssign, setTaskToAssign] = useState<string | null>(null);
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
 
     const { data: tasks, isLoading } = TaskApi.getAll.useQuery();
     const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = dataCollectorApi.getAll.useQuery();
-   
-
-
-
     const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
 
     const filteredTasks = useMemo(() => {
         if (!tasks) return [];
         const normalized = search.trim().toLowerCase();
-        if (!normalized) return tasks;
-        return tasks.filter((task: any) =>
-            task.title.toLowerCase().includes(normalized)
-        );
-    }, [tasks, search]);
+        return tasks.filter((task: any) => {
+            const rawStatus = task.status ? String(task.status) : "PENDING";
+            const normalizedStatus = rawStatus.toUpperCase();
+            const matchesStatus =
+                statusFilter === "ALL" || normalizedStatus === statusFilter;
+            if (!matchesStatus) return false;
+            if (!normalized) return true;
+            return task.title.toLowerCase().includes(normalized);
+        });
+    }, [tasks, search, statusFilter]);
 
     return (
         <div className="min-h-screen space-y-6 bg-[#E2EDF8] px-4 py-6 sm:px-6 lg:px-10">
@@ -74,6 +77,25 @@ export default function TasksPage() {
                             onChange={(event) => setSearch(event.target.value)}
                         />
                     </div>
+                    <div className="flex flex-wrap gap-2">
+                        {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
+                            (status) => (
+                                <Button
+                                    key={status}
+                                    variant="outline"
+                                    className={cn(
+                                        "h-9 rounded-full border-slate-200 px-4 text-xs font-semibold uppercase tracking-[0.18em]",
+                                        statusFilter === status
+                                            ? "border-slate-900 bg-slate-900 text-white"
+                                            : "bg-white/80 text-slate-500"
+                                    )}
+                                    onClick={() => setStatusFilter(status)}
+                                >
+                                    {status}
+                                </Button>
+                            )
+                        )}
+                    </div>
                 </div>
 
                 <div className="mt-6 overflow-hidden rounded-2xl border border-slate-50">
@@ -85,6 +107,9 @@ export default function TasksPage() {
                                 </TableHead>
                                 <TableHead className="font-semibold text-slate-700">
                                     Media Type
+                                </TableHead>
+                                <TableHead className="font-semibold text-slate-700">
+                                    Status
                                 </TableHead>
                                 <TableHead className="font-semibold text-slate-700">
                                     Submissions
@@ -129,6 +154,21 @@ export default function TasksPage() {
                                                 {task.mediaType}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    "rounded-full border-none px-3 py-1 text-[11px] font-bold uppercase tracking-wide",
+                                                    (task.status ? task.status : "PENDING") === "APPROVED"
+                                                        ? "bg-emerald-50 text-emerald-600"
+                                                        : (task.status ? task.status : "PENDING") === "REJECTED"
+                                                            ? "bg-red-50 text-red-600"
+                                                            : "bg-amber-50 text-amber-600"
+                                                )}
+                                            >
+                                                {task.status ? task.status : "PENDING"}
+                                            </Badge>
+                                        </TableCell>
                                         <TableCell className="font-medium text-slate-500">
                                             {task._count?.submissions ?? 0} items
                                             {/* _count not defined in Task type above — leave as-is or add to Task type if desired */}
@@ -164,7 +204,7 @@ export default function TasksPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="py-12 text-center text-sm text-slate-500">
+                                    <TableCell colSpan={5} className="py-12 text-center text-sm text-slate-500">
                                         No tasks match your search.
                                     </TableCell>
                                 </TableRow>

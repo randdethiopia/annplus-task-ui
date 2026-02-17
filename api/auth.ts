@@ -28,6 +28,8 @@ const loginFn = async (data: LoginInput) => {
 interface RegisterInput {
     name: string;
     email: string;
+    phone?: string;
+    telegramUsername?: string;
     password: string;
     role: "SUPERVISOR" | "ADMIN" | "COLLECTOR";
 }
