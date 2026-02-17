@@ -58,31 +58,43 @@ export default function RegisterPage() {
 	};
 
 	return (
-		<div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#f3f1ff,transparent_55%),linear-gradient(135deg,#e6f1ff_0%,#fdf7f1_55%,#ffffff_100%)] px-4 py-10">
-			<div className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-[radial-gradient(circle,#ffd9c2,transparent_65%)] opacity-70" />
-			<div className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,#cfe6ff,transparent_60%)] opacity-80" />
+		<div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#f2f7ff,transparent_60%),linear-gradient(135deg,#eef3ff_0%,#fff7f0_50%,#ffffff_100%)] px-4 py-12">
+			<div className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,#ffd2b3,transparent_65%)] opacity-70" />
+			<div className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,#c9e0ff,transparent_60%)] opacity-80" />
 
-			<div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-				<header className="flex flex-col gap-3 text-center">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+			<div className="mx-auto grid w-full max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_420px]">
+				<section className="flex flex-col justify-center gap-6 text-center lg:text-left">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-500">
 						Collector Onboarding
 					</p>
-					<h1 className="text-3xl font-black text-slate-600 sm:text-4xl">
+					<h1 className="text-3xl font-black text-slate-800 sm:text-4xl">
 						Register as a Data Collector
 					</h1>
-					<p className="mx-auto max-w-2xl text-sm font-medium text-slate-500">
+					<p className="max-w-xl text-sm font-medium text-slate-500">
 						Create your account to receive tasks, submit work, and track approvals.
 					</p>
-				</header>
+					<div className="mx-auto grid max-w-md gap-3 text-left text-sm text-slate-500 lg:mx-0">
+						<div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.6)]">
+							<span className="font-semibold text-slate-700">Fast onboarding</span>
+							<p className="text-xs text-slate-500">Get access to live tasks in minutes.</p>
+						</div>
+						<div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.6)]">
+							<span className="font-semibold text-slate-700">Clear feedback</span>
+							<p className="text-xs text-slate-500">Track approvals and notes in one place.</p>
+						</div>
+					</div>
+				</section>
 
-				<div className="mx-auto w-full max-w-lg">
+				<section className="w-full">
 					<form onSubmit={handleSubmit(onSubmit)} aria-label="register form">
-						<IslandCard className="relative overflow-hidden px-6 py-8">
-							<div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#ffffff,transparent_60%),linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.55))]" />
-							<h2 className="text-xl font-bold text-slate-700">
+						<IslandCard className="relative overflow-hidden px-6 py-8 sm:px-8">
+							<div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#ffffff,transparent_60%),linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,255,255,0.7))]" />
+							<h2 className="text-xl font-bold text-slate-800">
 								Your account details
 							</h2>
-							
+							<p className="mt-1 text-sm text-slate-500">
+								Use a work email you can access.
+							</p>
 
 							<div className="mt-6 space-y-4">
 								<div>
@@ -255,7 +267,7 @@ export default function RegisterPage() {
 							<div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 								<Button
 									type="submit"
-									className="h-11 rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-700"
+									className="h-11 rounded-xl bg-slate-900 px-6 text-white hover:bg-slate-800"
 									disabled={isSubmitting}
 								>
 									Create account
@@ -271,7 +283,7 @@ export default function RegisterPage() {
 							</div>
 						</IslandCard>
 					</form>
-				</div>
+				</section>
 			</div>
 		</div>
 	);
