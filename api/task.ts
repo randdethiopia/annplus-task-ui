@@ -1,4 +1,4 @@
-import { axiosInstance  as axios } from "@/lib/axios";
+import { axiosInstance as axios } from "@/lib/axios";
 import {
   UseMutationOptions,
   UseQueryOptions,
@@ -32,31 +32,32 @@ export interface Task {
   isActive: boolean
   status: TaskStatus
   createdById: string
+  reviewedById?: string | null
+  reviewerNote?: string | null
   createdAt: string
   updatedAt: string
+  submissions?: Submission[]
   _count: {
     submissions: number
   }
+  uploaded: {
+    images: number,
+    videos: number,
+    total: number
+  }
 }
 
-export interface TaskWithSubmissions {
-  id: string
-  title: string
-  description: string
-  videoCount: number
-  imageCount: number
-  isActive: boolean
-  status: TaskStatus
-  createdById: string
-  reviewedById: string | null
-  reviewerNote: string | null
-  createdAt: string
-  updatedAt: string
-  submissions: Submission[]
+export type TaskWithSubmissions = Task
+
+export interface TaskMediaProgress {
+  total: number
+  remaining: string[]
 }
 
 export interface TaskDetailsResponse {
-  task: TaskWithSubmissions
+  task: Task
+  images: TaskMediaProgress
+  videos: TaskMediaProgress
 }
 
 export interface TasksResponse {
@@ -101,10 +102,10 @@ interface TaskQuery {
   status?: string;
 }
 
-interface ReviewTaskInput { 
+interface ReviewTaskInput {
   status: TaskStatus;
   reviewerNote: string;
- }
+}
 
 export async function getTasksFn(pagination: TaskQuery) {
   return (await axios.get("/api/tasks", { params: pagination })).data;
@@ -195,13 +196,13 @@ const TaskApi = {
       }),
   },
   review: {
-      useMutation: (id: string, options?: UseMutationOptions<AxiosError, Task, ReviewTaskInput>) =>
-        useMutation({
-          mutationFn: (data) =>
-            reviewTaskFn(id, data),
-          ...options,
-        })
-    }
+    useMutation: (id: string, options?: UseMutationOptions<AxiosError, Task, ReviewTaskInput>) =>
+      useMutation({
+        mutationFn: (data) =>
+          reviewTaskFn(id, data),
+        ...options,
+      })
+  }
 };
 
 export default TaskApi;

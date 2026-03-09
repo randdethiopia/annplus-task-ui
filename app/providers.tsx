@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { fetchTasks } from "@/api/task";
+import { getTasksFn } from "@/api/task";
 import { getAllCollectorsFn } from "@/api/data-collector";
 
 export default function Providers({
@@ -29,7 +29,8 @@ export default function Providers({
 		const warmup = async () => {
 			await Promise.allSettled([
 				queryClient.prefetchQuery({
-					queryKey: ["tasks"],
+					queryKey: ["tasks", { page: 1, limit: 10 }],
+					queryFn: () => getTasksFn({ page: 1, limit: 10 }),
 				}),
 				queryClient.prefetchQuery({
 					queryKey: ["data-collectors"],

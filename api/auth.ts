@@ -36,7 +36,7 @@ interface LoginResponse {
 
 
 interface DataCollectorLoginResponse {
-    dataCollector: DataCollector;
+    collector: DataCollector;
     token: string;
 }
 

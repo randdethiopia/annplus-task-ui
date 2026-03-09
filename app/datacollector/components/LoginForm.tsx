@@ -24,7 +24,7 @@ type DataCollectorLoginValues = z.infer<typeof dataCollectorLoginSchema>
 export default function LoginForm() {
   const router = useRouter()
   const { setAccessToken } = useAuthStore()
-  const { mutate: login, isPending, isSuccess, isError } = AuthApi.loginDataCollector.useMutation()
+  const { mutateAsync: login } = AuthApi.loginDataCollector.useMutation()
 
   const {
     register,
@@ -45,16 +45,14 @@ export default function LoginForm() {
   }
 
   const onSubmit = async (values: DataCollectorLoginValues) => {
+    const toastId = toast.loading('Logging in...')
     try {
-        login(values,{
-        onSuccess: (data) => {
-          setAccessToken(data.dataCollector.id, data.token, 'collector');
-        }
-      })
-      toast.success('Login successful!')
-      router.push('/datacollector/dashboard')
+      const data = await login(values)
+      setAccessToken(data.collector.id, data.token, 'collector')
+      toast.success('Login successful!', { id: toastId })
+      router.push('/datacollector/tasks')
     } catch {
-      toast.error('Login failed. Please check your credentials and try again.')
+      toast.error('Login failed. Please check your credentials and try again.', { id: toastId })
     }
   }
 

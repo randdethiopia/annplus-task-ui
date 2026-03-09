@@ -25,7 +25,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import TaskApi, { Submission, TaskStatus, TaskWithSubmissions } from "@/api/task";
+import TaskApi, { Submission, Task, TaskStatus } from "@/api/task";
 import { useSearchParams } from "next/navigation";
 
 const emptyRows = Array.from({ length: 5 }, (_, index) => index);
@@ -49,7 +49,7 @@ export default function SubmissionsPage() {
         return `${apiBaseUrl}${normalizedPath}`;
     };
 
-	const [task, setTask] = useState<TaskWithSubmissions | null>(null);
+	const [task, setTask] = useState<Task | null>(null);
 	const [submissions, setSubmissions] = useState<Submission[]>([]);
 	const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
@@ -80,8 +80,9 @@ export default function SubmissionsPage() {
 
 	useEffect(() => {
 		if (isSuccess && taskData.task) {
-			setSubmissions(taskData.task.submissions);
-			setSelectedSubmission(taskData.task.submissions[0] ?? null);
+			const taskSubmissions = taskData.task.submissions ?? [];
+			setSubmissions(taskSubmissions);
+			setSelectedSubmission(taskSubmissions[0] ?? null);
 			setTask(taskData.task);
 			setReviewerNote(taskData.task.reviewerNote ?? "");
 			setReviewStatus(taskData.task.status ?? "APPROVED");
