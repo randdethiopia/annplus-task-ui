@@ -39,10 +39,10 @@ export default function LoginPage() {
     setServerError(null);
     try {
       const data = await mutateAsync(input);
-      setAccessToken(data.user.id, data.token);
+      setAccessToken(data.user.id, data.token, data.user.role);
       toast.success("Signed in successfully", { id: toastId });
       router.push("/dashboard/task");
-    } catch (error) {
+    } catch {
       setServerError("Unable to sign in. Please try again.");
       toast.error("Unable to sign in. Please try again.", { id: toastId });
     }

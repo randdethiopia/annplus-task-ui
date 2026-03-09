@@ -1,67 +1,63 @@
 'use client'
 
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Lock, Phone } from 'lucide-react'
 import { toast } from 'sonner'
+import AuthApi from '@/api/auth'
+import useAuthStore from '@/store/authStore'
+import { z } from 'zod'
 
-interface LoginFormProps {
-  onLogin: () => void
-}
+const dataCollectorLoginSchema = z.object({
+  phone: z
+    .string()
+    .regex(/^09\d{8}$/, 'Please enter a valid phone number (09xxxxxxxx)'),
+  password: z.string().min(1, 'Please enter your password'),
+})
 
-export default function LoginForm({ onLogin }: LoginFormProps) {
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+type DataCollectorLoginValues = z.infer<typeof dataCollectorLoginSchema>
+
+export default function LoginForm() {
+  const router = useRouter()
+  const { setAccessToken } = useAuthStore()
+  const { mutate: login, isPending, isSuccess, isError } = AuthApi.loginDataCollector.useMutation()
+
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<DataCollectorLoginValues>({
+    resolver: zodResolver(dataCollectorLoginSchema),
+    defaultValues: {
+      phone: '',
+      password: '',
+    },
+  })
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '')
-    if (value.length > 10) {
-      value = value.slice(0, 10)
-    }
-    setPhoneNumber(value)
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10)
+    setValue('phone', value, { shouldValidate: true })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    // Validate phone format
-    if (phoneNumber.length !== 10 || !phoneNumber.startsWith('09')) {
-      toast.error('Please enter a valid phone number (09xxxxxxxx)')
-      setIsLoading(false)
-      return
-    }
-
-    // Validate password
-    if (password.length === 0) {
-      toast.error('Please enter your password')
-      setIsLoading(false)
-      return
-    }
-
-    // Simulate login delay
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // Hardcoded credentials
-    const validPhone = '0912345678'
-    const validPassword = '1234'
-
-    if (phoneNumber === validPhone && password === validPassword) {
+  const onSubmit = async (values: DataCollectorLoginValues) => {
+    try {
+        login(values,{
+        onSuccess: (data) => {
+          setAccessToken(data.dataCollector.id, data.token, 'collector');
+        }
+      })
       toast.success('Login successful!')
-      onLogin()
-    } else {
-      toast.error('Invalid phone number or password')
+      router.push('/datacollector/dashboard')
+    } catch {
+      toast.error('Login failed. Please check your credentials and try again.')
     }
-
-    setIsLoading(false)
   }
 
-  const displayPhone = phoneNumber
-    ? `09${phoneNumber.slice(2)}`
-    : ''
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary">
@@ -76,7 +72,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <p className="text-muted-foreground mt-2">Enter your credentials to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
             <label htmlFor="phone" className="text-sm font-medium text-foreground">
               Phone Number
@@ -87,12 +83,16 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 id="phone"
                 type="tel"
                 placeholder="09xxxxxxxx"
-                value={displayPhone}
+                {...register('phone')}
                 onChange={handlePhoneChange}
                 className="pl-10 text-base"
-                disabled={isLoading}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.phone}
               />
             </div>
+            {errors.phone && (
+              <p className="text-xs font-medium text-rose-500">{errors.phone.message}</p>
+            )}
             <p className="text-xs text-muted-foreground">
               Format: 09xxxxxxxx (10 digits)
             </p>
@@ -108,34 +108,26 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 id="password"
                 type="password"
                 placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
                 className="pl-10 text-base"
-                disabled={isLoading}
+                disabled={isSubmitting}
+                aria-invalid={!!errors.password}
               />
             </div>
+            {errors.password && (
+              <p className="text-xs font-medium text-rose-500">{errors.password.message}</p>
+            )}
           </div>
 
           <Button
             type="submit"
             className="w-full mt-6 text-base h-10"
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isSubmitting ? 'Logging in...' : 'Login'}
           </Button>
         </form>
 
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <p className="text-xs text-muted-foreground text-center">
-            <strong>Demo Credentials:</strong>
-          </p>
-          <p className="text-xs text-muted-foreground text-center mt-1">
-            Phone: 09<strong>12345678</strong>
-          </p>
-          <p className="text-xs text-muted-foreground text-center">
-            Password: <strong>1234</strong>
-          </p>
-        </div>
       </Card>
     </div>
   )

@@ -15,11 +15,11 @@ import {
     UserCog,
     LayoutDashboard,
     LogOut,
+    type LucideIcon,
     UserIcon
-} from "lucide-react"; // Import Icons
+} from "lucide-react";
 
-// Map your keys to actual Lucide components
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, LucideIcon> = {
     "data-collectors": Users,
     "tasks": ClipboardList,
     "submissions": CheckSquare,

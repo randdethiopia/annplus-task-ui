@@ -10,8 +10,22 @@ interface User {
     createdAt?: string;
 }
 
+interface DataCollector {
+  id: string
+  name: string
+  phone: string
+  telegramUsername: string
+  telegramChatId: string
+  createdAt: string
+  updatedAt: string
+}
 interface LoginInput {
     email: string;
+    password: string;
+}
+
+interface DataCollectorLoginInput {
+    phone: string;
     password: string;
 }
 
@@ -20,9 +34,10 @@ interface LoginResponse {
     token: string;
 }
 
-const loginFn = async (data: LoginInput) => {
-    const response = await axios.post("/api/auth/login", data);
-    return response.data;
+
+interface DataCollectorLoginResponse {
+    dataCollector: DataCollector;
+    token: string;
 }
 
 interface RegisterInput {
@@ -38,14 +53,26 @@ interface RegisterResponse {
     user: User;
 }
 
+interface UsersResponse {
+    users: User[];
+}
+
+const loginFn = async (data: LoginInput) => {
+    const response = await axios.post("/api/auth/login", data);
+    return response.data;
+}
+
+const dataCollectorLoginFn = async (data: DataCollectorLoginInput) => {
+    const response = await axios.post("/api/auth/data-collector/login", data);
+    return response.data;
+}
+
+
 const registerFn = async (data: RegisterInput) => {
     const response = await axios.post("/api/users/register", data);
     return response.data;
 }
 
-interface UsersResponse {
-    users: User[];
-}
 
 const getUsersFn = async (): Promise<UsersResponse> => {
     const response = await axios.get("/api/users");
@@ -64,6 +91,13 @@ const AuthApi = {
         useMutation: ( option?: UseMutationOptions<LoginResponse, AxiosError, LoginInput, unknown> ) => 
             useMutation({
                 mutationFn: (data: LoginInput) => loginFn(data),
+                ...option
+            })
+    },
+    loginDataCollector: {
+        useMutation: ( option?: UseMutationOptions<DataCollectorLoginResponse, AxiosError, DataCollectorLoginInput, unknown> ) => 
+            useMutation({
+                mutationFn: (data) => dataCollectorLoginFn(data),
                 ...option
             })
     },
