@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, Plus, Search } from "lucide-react";
 import Link from "next/link";
-import { TaskDetailsSheet } from "@/components/task-sheet";
 import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,35 +16,43 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import TaskApi from "@/api/task";
+import TaskApi, { Task } from "@/api/task";
 import { cn } from "@/lib/utils";
 import AssignModal from "./assign-modal";
 import { dataCollectorApi } from "@/api/data-collector";
+import { Pagination } from "@/components/pagination";
 
+
+const statusOptions = ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"];
 
 export default function TasksPage() {
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [ taskToAssign, setTaskToAssign] = useState<string | null>(null);
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
+    const [statusFilter, setStatusFilter] = useState<typeof statusOptions[number]>("PENDING");
 
-    const { data: tasks, isLoading } = TaskApi.getAll.useQuery();
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
+    const [totalPages, setTotalPages] = useState(0);
+
+    const { data: tasksData, isLoading, isSuccess: isTaskSuccess } = TaskApi.getAll.useQuery({
+      page,
+      limit,
+      status: statusFilter
+    });
     const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = dataCollectorApi.getAll.useQuery();
     const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
 
-    const filteredTasks = useMemo(() => {
-        if (!tasks) return [];
-        const normalized = search.trim().toLowerCase();
-        return tasks.filter((task: any) => {
-            const rawStatus = task.status ? String(task.status) : "PENDING";
-            const normalizedStatus = rawStatus.toUpperCase();
-            const matchesStatus =
-                statusFilter === "ALL" || normalizedStatus === statusFilter;
-            if (!matchesStatus) return false;
-            if (!normalized) return true;
-            return task.title.toLowerCase().includes(normalized);
-        });
-    }, [tasks, search, statusFilter]);
+
+    useEffect(() => {
+        if(isTaskSuccess) {
+            setTasks(tasksData.tasks);
+            setTotalPages(tasksData.totalPages);
+        }
+    }, [isTaskSuccess, tasksData, limit]);
+
+
 
     return (
         <div className="min-h-screen space-y-6 bg-[#E2EDF8] px-4 py-6 sm:px-6 lg:px-10">
@@ -58,7 +65,7 @@ export default function TasksPage() {
                         Create and monitor data collection jobs
                     </p>
                 </div>
-                <Link href="/dashboard/Task/new" className="inline-block">
+                <Link href="/dashboard/task/new" className="inline-block">
                     <Button className="h-11 rounded-xl bg-blue-500 px-5 hover:bg-blue-700">
                         <Plus className="mr-2 h-4 w-4" />
                         New Task
@@ -78,7 +85,7 @@ export default function TasksPage() {
                         />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
+                        {statusOptions.map(
                             (status) => (
                                 <Button
                                     key={status}
@@ -106,7 +113,10 @@ export default function TasksPage() {
                                     Task Title
                                 </TableHead>
                                 <TableHead className="font-semibold text-slate-700">
-                                    Media Type
+                                    Images needed
+                                </TableHead>
+                                <TableHead className="font-semibold text-slate-700">
+                                    Videos needed
                                 </TableHead>
                                 <TableHead className="font-semibold text-slate-700">
                                     Status
@@ -126,19 +136,28 @@ export default function TasksPage() {
                                         <TableCell className="py-5">
                                             <Skeleton className="h-5 w-44" />
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="py-5">
                                             <Skeleton className="h-5 w-20" />
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="py-5">
                                             <Skeleton className="h-5 w-24" />
+                                        </TableCell>
+                                        <TableCell className="py-5">
+                                            <Skeleton className="h-5 w-20" />
+                                        </TableCell>
+                                        <TableCell className="py-5">
+                                            <Skeleton className="h-5 w-28" />
+                                        </TableCell>
+                                        <TableCell className="py-5">
+                                            <Skeleton className="h-5 w-16" />
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
                                             <Skeleton className="ml-auto h-9 w-9 rounded-xl" />
                                         </TableCell>
                                     </TableRow>
                                 ))
-                            ) : filteredTasks.length ? (
-                                filteredTasks.map((task: any) => (
+                            ) : tasks.length > 0 ? (
+                                tasks.map((task) => (
                                     <TableRow
                                         key={task.id}
                                         className="border-b border-slate-50 hover:bg-slate-50/50"
@@ -146,13 +165,11 @@ export default function TasksPage() {
                                         <TableCell className="py-5 font-semibold text-slate-700">
                                             {task.title}
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant="outline"
-                                                className="rounded-lg border-slate-200 font-semibold text-slate-500"
-                                            >
-                                                {task.mediaType}
-                                            </Badge>
+                                        <TableCell className="py-5 font-semibold text-slate-700">
+                                            {task.imageCount}
+                                        </TableCell>
+                                        <TableCell className="py-5 font-semibold text-slate-700">
+                                            {task.videoCount}
                                         </TableCell>
                                         <TableCell>
                                             <Badge
@@ -170,12 +187,11 @@ export default function TasksPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="font-medium text-slate-500">
-                                            {task._count?.submissions ?? 0} items
-                                            {/* _count not defined in Task type above — leave as-is or add to Task type if desired */}
+                                            {task._count.submissions ?? 0} items
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
                                             <Link
-                                            href={`/dashboard/submissions?taskId=${task.id}`}
+                                            href={`/dashboard/submission?taskId=${task.id}`}
                                             >
                                              <Button
                                                 variant="ghost"
@@ -184,13 +200,17 @@ export default function TasksPage() {
                                                 Submissions
                                             </Button>
                                             </Link>
+                                            {
+                                             task.isAssigned ?
+                                                <Badge> Assigned </Badge> :
                                             <Button
                                                 variant="ghost"
                                                 className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
-                                                onClick={() => {setTaskToAssign(task.id); setIsAssignModalOpen(true)}}
+                                                onClick={() => { setTaskToAssign(task.id); setIsAssignModalOpen(true) }}
                                             >
                                                 Assign
                                             </Button>
+                                            }
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -204,7 +224,7 @@ export default function TasksPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="py-12 text-center text-sm text-slate-500">
+                                    <TableCell colSpan={7} className="py-12 text-center text-sm text-slate-500">
                                         No tasks match your search.
                                     </TableCell>
                                 </TableRow>
@@ -212,12 +232,20 @@ export default function TasksPage() {
                         </TableBody>
                     </Table>
                 </div>
+                <Pagination
+                    page={page}
+                    onPageChange={setPage}
+                    totalPages={totalPages}
+                    limit={limit}
+                    onLimitChange={setLimit}
+                    loading={isLoading}
+                />
             </IslandCard>
 
-            <TaskDetailsSheet
+            {/* <TaskDetailsSheet
                 id={selectedId as string}
                 onClose={() => setSelectedId(null)}
-            />
+            /> */}
 
             {isDataCollectorsSuccess &&
                 <AssignModal

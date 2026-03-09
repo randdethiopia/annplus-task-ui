@@ -9,11 +9,12 @@ import { toast } from "sonner";
 import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import AuthApi from "@/api/auth";
 import {
 	RegisterCollectorSchema,
 	type RegisterCollectorInput,
 } from "@/types/validator";
+import { Spinner } from "@/components/ui/spinner";
+import { dataCollectorApi } from "@/api/data-collector";
 
 export default function RegisterPage() {
 	const router = useRouter();
@@ -27,22 +28,30 @@ export default function RegisterPage() {
 		resolver: zodResolver(RegisterCollectorSchema),
 	});
 
-	const { mutateAsync } = AuthApi.register.useMutation();
+	const { mutateAsync } = dataCollectorApi.register.useMutation();
 
 	const onSubmit = async (input: RegisterCollectorInput) => {
 		const toastId = toast.loading("Creating your account...");
 		setServerError(null);
 		try {
-			await mutateAsync({
-				name: input.name,
-				email: input.email,
-				phone: input.phone,
-				telegramUsername: input.telegramUsername,
-				password: input.password,
-				role: "COLLECTOR",
-			});
-			toast.success("Account created. You can sign in now.", { id: toastId });
-			router.push("/auth/login");
+			const telegramUsername =
+				input.telegramUsername && input.telegramUsername.startsWith("@")
+					? input.telegramUsername.slice(1)
+					: input.telegramUsername;
+
+			await mutateAsync(
+				{
+					name: input.name,
+					phone: input.phone,
+					telegramUsername,
+				},
+				{
+					onSuccess: (data) => {
+						toast.success("You are registered , redirecting to " + data.redirect);
+						window.open(data.redirect, "_blank", "noopener,noreferrer");
+					},
+				}
+			);
 		} catch (error) {
 			setServerError("Unable to create account. Please try again.");
 			toast.error("Unable to create account. Please try again.", { id: toastId });
@@ -50,7 +59,7 @@ export default function RegisterPage() {
 	};
 
 	return (
-		<div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#f2f7ff,transparent_60%),linear-gradient(135deg,#eef3ff_0%,#fff7f0_50%,#ffffff_100%)] px-4 py-12">
+		<div className="relative min-h-screen flex items-center overflow-hidden bg-[radial-gradient(circle_at_top,#f2f7ff,transparent_60%),linear-gradient(135deg,#eef3ff_0%,#fff7f0_50%,#ffffff_100%)] px-4 py-12">
 			<div className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,#ffd2b3,transparent_65%)] opacity-70" />
 			<div className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[radial-gradient(circle,#c9e0ff,transparent_60%)] opacity-80" />
 
@@ -99,32 +108,6 @@ export default function RegisterPage() {
 									{errors.name && (
 										<p id="name-error" className="mt-2 text-xs font-semibold text-rose-500">
 											{errors.name.message}
-										</p>
-									)}
-								</div>
-
-								<div>
-									<label
-										htmlFor="email"
-										className="text-xs font-semibold uppercase text-slate-400"
-									>
-										Email
-									</label>
-									<Input
-										id="email"
-										type="email"
-										placeholder="you@example.com"
-										className="mt-2 h-11 rounded-xl"
-										aria-invalid={!!errors.email}
-										aria-describedby={errors.email ? "email-error" : undefined}
-										{...register("email", {
-											required: "Email is required",
-											pattern: { value: /^\S+@\S+\.\S+$/, message: "Invalid email address" },
-										})}
-									/>
-									{errors.email && (
-										<p id="email-error" className="mt-2 text-xs font-semibold text-rose-500">
-											{errors.email.message}
 										</p>
 									)}
 								</div>
@@ -181,62 +164,6 @@ export default function RegisterPage() {
 										)}
 									</div>
 								</div>
-
-								<div className="grid gap-4 sm:grid-cols-2">
-									<div>
-										<label
-											htmlFor="password"
-											className="text-xs font-semibold uppercase text-slate-400"
-										>
-											Password
-										</label>
-										<Input
-											id="password"
-											type="password"
-											placeholder="••••••••"
-											className="mt-2 h-11 rounded-xl"
-											aria-invalid={!!errors.password}
-											aria-describedby={errors.password ? "password-error" : undefined}
-											{...register("password", {
-												required: "Password is required",
-												minLength: { value: 6, message: "Minimum 6 characters" },
-											})}
-										/>
-										{errors.password && (
-											<p id="password-error" className="mt-2 text-xs font-semibold text-rose-500">
-												{errors.password.message}
-											</p>
-										)}
-									</div>
-
-									<div>
-										<label
-											htmlFor="confirmPassword"
-											className="text-xs font-semibold uppercase text-slate-400"
-										>
-											Confirm password
-										</label>
-										<Input
-											id="confirmPassword"
-											type="password"
-											placeholder="••••••••"
-											className="mt-2 h-11 rounded-xl"
-											aria-invalid={!!errors.confirmPassword}
-											aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
-											{...register("confirmPassword", {
-												required: "Confirm your password",
-											})}
-										/>
-										{errors.confirmPassword && (
-											<p
-												id="confirm-password-error"
-												className="mt-2 text-xs font-semibold text-rose-500"
-											>
-												{errors.confirmPassword.message}
-											</p>
-										)}
-									</div>
-								</div>
 							</div>
 
 							{serverError && (
@@ -245,22 +172,15 @@ export default function RegisterPage() {
 								</p>
 							)}
 
-							<div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+							<div className="mt-6 flex justify-end">
 								<Button
 									type="submit"
 									className="h-11 rounded-xl bg-slate-900 px-6 text-white hover:bg-slate-800"
 									disabled={isSubmitting}
 								>
-									Create account
+									{isSubmitting && <Spinner />}
+									Register
 								</Button>
-								{/* <Button
-									type="button"
-									variant="ghost"
-									className="h-11 rounded-xl text-slate-500"
-									onClick={() => router.push("/auth/login")}
-								>
-									Already have an account?
-								</Button> */}
 							</div>
 						</IslandCard>
 					</form>

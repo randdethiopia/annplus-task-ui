@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, CheckCircle, XCircle, Search, Eye } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { IslandCard } from "@/components/icard";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import PaginationControls from "@/components/shared/paginationControl";
 import {
 	Sheet,
 	SheetContent,
@@ -26,488 +23,254 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import type { ReviewSubmissionInput } from "@/types/submission";
 import { cn } from "@/lib/utils";
-import { submissionApi } from "@/api/submission";
-import { useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
+import TaskApi, { Submission, TaskStatus, TaskWithSubmissions } from "@/api/task";
+import { useSearchParams } from "next/navigation";
 
 const emptyRows = Array.from({ length: 5 }, (_, index) => index);
 
 export default function SubmissionsPage() {
-	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
-	const { data: submissions, isLoading } = submissionApi.getAll.useQuery();
-	const queryClient = useQueryClient();
+
+	const searchParams = useSearchParams();
+	const taskId = searchParams.get("taskId");
+
+	const { data: taskData, isSuccess, isLoading: isTaskLoading } = TaskApi.getById.useQuery(taskId);
+	const { mutate: reviewMutation, isPending } = TaskApi.review.useMutation(taskId ?? "");
 
 	const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+	
 	const resolveUploadUrl = (url?: string | null) => {
-		if (!url) return undefined;
-		if (url.startsWith("http://") || url.startsWith("https://")) return url;
-		if (!apiBaseUrl) return url;
-		const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-		return `${apiBaseUrl}${normalizedPath}`;
-	};
+        if (!url) return undefined;
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+        if (!apiBaseUrl) return url;
+        const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+        return `${apiBaseUrl}${normalizedPath}`;
+    };
 
+	const [task, setTask] = useState<TaskWithSubmissions | null>(null);
+	const [submissions, setSubmissions] = useState<Submission[]>([]);
+	const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
-	const [statusFilter, setStatusFilter] = useState<
-		"ALL" | ReviewSubmissionInput["status"]
-	>("ALL");
-	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const resolvedSelectedUploadUrl = useMemo(() => {
+		return selectedSubmission?.uploadUrl ? resolveUploadUrl(selectedSubmission.uploadUrl) : undefined;
+	}, [selectedSubmission?.uploadUrl, apiBaseUrl]);
+	
 	const [reviewOpen, setReviewOpen] = useState(false);
-	const [reviewNote, setReviewNote] = useState("");
-	const [reviewTargetId, setReviewTargetId] = useState<string | null>(null);
-	const [reviewStatus, setReviewStatus] = useState<
-		ReviewSubmissionInput["status"]
-	>("APPROVED");
-	const [contentOpen, setContentOpen] = useState(false);
-	const [contentTargetId, setContentTargetId] = useState<string | null>(null);
+    const [reviewerNote, setReviewerNote] = useState("");
+    const [reviewStatus, setReviewStatus] = useState<TaskStatus>("APPROVED");
 
-	const { mutate: reviewMutation, isPending } = submissionApi.review.useMutation(reviewTargetId ?? "");
+    const currentIndex = useMemo(() => {
+        if (!selectedSubmission) return -1;
+        return submissions.findIndex((s) => s.id === selectedSubmission.id);
+    }, [submissions, selectedSubmission]);
 
-	const sortedSubmissions = useMemo(() => {
-		if (!submissions) return [];
-		return [...submissions].sort((a, b) =>
-			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-		);
-	}, [submissions]);
+    const goPrev = () => {
+        if (currentIndex > 0) {
+            setSelectedSubmission(submissions[currentIndex - 1]);
+        }
+    };
 
-	const filteredSubmissions = useMemo(() => {
-		const query = searchQuery.trim().toLowerCase();
-		return sortedSubmissions.filter((submission) => {
-			const matchesStatus =
-				statusFilter === "ALL" || submission.status === statusFilter;
-			if (!matchesStatus) return false;
-
-			if (!query) return true;
-			return (
-				submission.collector.name.toLowerCase().includes(query) ||
-				submission.task.title.toLowerCase().includes(query) ||
-				submission.task.mediaType.toLowerCase().includes(query)
-			);
-		});
-	}, [sortedSubmissions, searchQuery, statusFilter]);
+    const goNext = () => {
+        if (currentIndex >= 0 && currentIndex < submissions.length - 1) {
+            setSelectedSubmission(submissions[currentIndex + 1]);
+        }
+    };
 
 	useEffect(() => {
-		setPage(1);
-	}, [searchQuery, statusFilter]);
-
-	const pagedSubmissions = useMemo(() => {
-		const startIndex = (page - 1) * pageSize;
-		return filteredSubmissions.slice(startIndex, startIndex + pageSize);
-	}, [filteredSubmissions, page, pageSize]);
-
-	const previewSubmission = useMemo(() => {
-		if (selectedId) {
-			return filteredSubmissions.find((item) => item.id === selectedId) ?? null;
+		if (isSuccess && taskData.task) {
+			setSubmissions(taskData.task.submissions);
+			setSelectedSubmission(taskData.task.submissions[0] ?? null);
+			setTask(taskData.task);
+			setReviewerNote(taskData.task.reviewerNote ?? "");
+			setReviewStatus(taskData.task.status ?? "APPROVED");
 		}
-		return pagedSubmissions[0] ?? filteredSubmissions[0] ?? null;
-	}, [filteredSubmissions, pagedSubmissions, selectedId]);
+	}, [isSuccess, taskData]);
 
-	const previewUrl = resolveUploadUrl(previewSubmission?.uploadUrl ?? null);
-	const contentTarget = useMemo(() => {
-		if (!contentTargetId) return null;
-		return submissions?.find((item) => item.id === contentTargetId) ?? null;
-	}, [contentTargetId, submissions]);
-	const contentUrl = resolveUploadUrl(contentTarget?.uploadUrl ?? null);
-	const reviewTargetSubmission = useMemo(() => {
-		if (!reviewTargetId) return null;
-		return submissions?.find((item) => item.id === reviewTargetId) ?? null;
-	}, [reviewTargetId, submissions]);
 
-	const openReviewDrawer = (
-		id: string,
-		status: ReviewSubmissionInput["status"]
-	) => {
-		const target = submissions?.find((item) => item.id === id) ?? null;
-		setReviewTargetId(id);
-		setReviewStatus(status);
-		setReviewNote(target?.approverNote ?? "");
-		setReviewOpen(true);
-	};
-
-	const openContentModal = (id: string) => {
-		setContentTargetId(id);
-		setContentOpen(true);
-	};
 
 	const handleSubmitReview = () => {
-		if (!reviewTargetId) return;
 		reviewMutation({
-				status: reviewStatus,
-				approverNote: reviewNote,
-			},
-			{
-				onSuccess: () => {
-					queryClient.invalidateQueries({ queryKey: ["submissions"] });
-					setReviewOpen(false);
-				},
-			}
+			status: reviewStatus,
+			reviewerNote
+		},
 		);
 	};
 
 	return (
-		<div className="min-h-screen bg-[radial-gradient(circle_at_top,#dfeeff,transparent_55%),linear-gradient(180deg,#eef5ff_0%,#f8fbff_50%,#ffffff_100%)] px-6 py-10">
-			<div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-				<header className="rounded-3xl border border-white/60 bg-white/70 px-6 py-6 shadow-[0_18px_50px_-40px_rgba(15,23,42,0.7)] backdrop-blur">
-					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-						<div className="space-y-2">
-							<p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-blue-500">
-								Review Desk
-							</p>
-							<h1 className="text-1xl font-black text-slate-600 sm:text-4xl">
-								Submissions
-							</h1>
-							<p className="max-w-xl text-sm font-medium text-slate-500">
-								Assess incoming work, issue approvals, and add feedback when needed.
-							</p>
+		<div className="min-h-screen px-4 py-6">
+             <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+                <header className="rounded-3xl border border-white/60 px-4 py-4">
+                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-blue-500">
+								Submissions for
+                            </p>
+                            <h1 className="text-1xl font-black text-slate-600 sm:text-4xl">
+                                { task?.title }
+                            </h1>
+                            <p className="max-w-xl text-sm font-medium text-slate-500">
+                                { task?.description }
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+							<Button
+								variant="outline"
+								onClick={() => setReviewOpen(true)}
+							>
+								Open Review
+							</Button>
 						</div>
-						<div className="flex flex-wrap gap-2">
-							
-						</div>
-					</div>
-				</header>
-				<div className="flex flex-col gap-4 rounded-3xl border border-white/70 bg-white/70 px-5 py-4 shadow-[0_16px_45px_-35px_rgba(15,23,42,0.6)] backdrop-blur">
-					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-						<div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 md:max-w-2xl">
-							<div className="relative w-full sm:max-w-sm">
-								<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-								<Input
-									value={searchQuery}
-									onChange={(event) => setSearchQuery(event.target.value)}
-									placeholder="Search by collector or task"
-									className="h-10 rounded-full border-slate-200 bg-white/80 pl-9"
-								/>
-							</div>
-							<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-								<span>Rows per page</span>
-								<NativeSelect
-									size="sm"
-									value={pageSize}
-									onChange={(event) => {
-										const nextSize = Number(event.target.value);
-										setPageSize(nextSize);
-										setPage(1);
-									}}
-									disabled={isLoading}
-									className="h-8 rounded-full border-slate-200 bg-white/80 px-3 pr-8 text-xs font-semibold text-slate-600 shadow-none"
-									aria-label="Rows per page"
-								>
-									{[5, 10, 20, 50].map((size) => (
-										<NativeSelectOption key={size} value={size}>
-											{size}
-										</NativeSelectOption>
-									))}
-								</NativeSelect>
-							</div>
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(
-								(status) => (
-									<Button
-										key={status}
-										variant="outline"
-										className={cn(
-											"h-9 rounded-full border-slate-200 px-4 text-xs font-semibold uppercase tracking-[0.18em]",
-											statusFilter === status
-												? "border-slate-900 bg-slate-900 text-white"
-												: "bg-white/80 text-slate-500"
-										)}
-										onClick={() => setStatusFilter(status)}
-									>
-										{status}
-									</Button>
-								)
-							)}
-						</div>
-					</div>
-				</div>
+                    </div>
+                </header>
 
-				<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-					
-						<div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
+
+                <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1.8fr)]">
+
+					<div className="self-start overflow-hidden rounded-3xl border border-slate-200/80">
+                        <div className="flex flex-col gap-4 rounded-3xl px-4 py-3">
+							<div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 md:max-w-2xl">
+								<div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+									<span>Rows per page</span>
+									<NativeSelect
+										size="sm"
+										value={pageSize}
+										onChange={(event) => {
+											const nextSize = Number(event.target.value);
+											setPageSize(nextSize);
+										}}
+										className="h-8 rounded-full border-slate-200 bg-white/80 px-3 pr-8 text-xs font-semibold text-slate-600 shadow-none"
+										aria-label="Rows per page"
+									>
+										{[5, 10, 20, 50].map((size) => (
+											<NativeSelectOption key={size} value={size}>
+												{size}
+											</NativeSelectOption>
+										))}
+									</NativeSelect>
+								</div>
+							</div>
+
 							<Table>
-							<TableHeader className="bg-slate-50">
-								<TableRow className="border-none">
-									<TableHead className="font-bold text-slate-700">
-										Collector
-									</TableHead>
-									<TableHead className="font-bold text-slate-700">
-										Task
-									</TableHead>
-									<TableHead className="font-bold text-slate-700">
-										Uploaded Content
-									</TableHead>
-									<TableHead className="font-bold text-slate-700">
-										Status
-									</TableHead>
-									<TableHead className="pr-8 text-right font-bold text-slate-700">
-										Review
-									</TableHead>
-								</TableRow>
-							</TableHeader>
+								<TableHeader>
+									<TableRow className="border-none">
+										<TableHead className="font-bold text-slate-700">Type</TableHead>
+										<TableHead className="pr-8 text-right font-bold text-slate-700">View</TableHead>
+									</TableRow>
+								</TableHeader>
 								<TableBody>
-									{isLoading
-										? emptyRows.map((row) => (
+									{ isTaskLoading ? emptyRows.map((row) => (
 											<TableRow key={`skeleton-${row}`}>
 												<TableCell>
 													<Skeleton className="h-4 w-36" />
 												</TableCell>
-												<TableCell>
-													<div className="space-y-2">
-														<Skeleton className="h-4 w-44" />
-														<Skeleton className="h-3 w-20" />
-													</div>
-												</TableCell>
-												<TableCell>
-													<Skeleton className="h-4 w-28" />
-												</TableCell>
-												<TableCell>
-													<Skeleton className="h-5 w-24 rounded-full" />
-												</TableCell>
 												<TableCell className="pr-4 text-right">
-													<div className="ml-auto flex w-fit gap-2">
-														<Skeleton className="h-9 w-9 rounded-xl" />
-														<Skeleton className="h-9 w-9 rounded-xl" />
-													</div>
+													<Skeleton className="h-9 w-9 rounded-xl ml-auto" />
 												</TableCell>
 											</TableRow>
 										))
-									: pagedSubmissions.map((submission) => {
-											const isPending = submission.status === "PENDING";
-
+										: Array.isArray(submissions) && submissions.map((submission) => {
 											return (
 												<TableRow
 													key={submission.id}
 													className={cn(
 														"border-slate-100 transition hover:bg-slate-50/80",
-														previewSubmission?.id === submission.id
-															? "bg-slate-50/70"
-															: ""
+														selectedSubmission?.id === submission.id ? "bg-slate-50/70" : ""
 													)}
-													onClick={() => setSelectedId(submission.id)}
 												>
 													<TableCell className="font-semibold text-slate-700">
-														{submission.collector.name}
-													</TableCell>
-													<TableCell>
-														<div className="flex flex-col">
-															<span className="text-sm font-semibold text-slate-800">
-																{submission.task.title}
-															</span>
-															<span className="text-[10px] font-bold uppercase text-slate-400">
-																{submission.task.mediaType}
-															</span>
-														</div>
-													</TableCell>
-													<TableCell>
-														<button
-															type="button"
-															className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
-															onClick={(event) => {
-																event.stopPropagation();
-																openContentModal(submission.id);
-															}}
-														>
-															View File
-															<ExternalLink className="h-3 w-3" />
-														</button>
-													</TableCell>
-													<TableCell>
-														<Badge
-															variant="outline"
-															className={cn(
-																"rounded-full border-none px-3 py-1 text-[11px] font-bold uppercase tracking-wide",
-																submission.status === "APPROVED"
-																	? "bg-emerald-50 text-emerald-600"
-																	: submission.status === "REJECTED"
-																		? "bg-red-50 text-red-600"
-																		: "bg-amber-50 text-amber-600"
-															)}
-														>
-															{submission.status}
-														</Badge>
+														{submission.mediaType}
 													</TableCell>
 													<TableCell className="pr-4 text-right">
-														{isPending ? (
-															<div className="inline-flex items-center gap-2">
-																<Button
-																	size="icon"
-																	className="h-9 w-9 rounded-xl border-none bg-emerald-50 text-emerald-600 shadow-none hover:bg-emerald-100"
-																	onClick={(event) => {
-																	event.stopPropagation();
-																	openReviewDrawer(submission.id, "APPROVED");
-																}}
-																>
-																	<CheckCircle className="h-4 w-4" />
-																</Button>
-																<Button
-																	size="icon"
-																	className="h-9 w-9 rounded-xl border-none bg-red-50 text-red-600 shadow-none hover:bg-red-100"
-																	onClick={(event) => {
-																	event.stopPropagation();
-																	openReviewDrawer(submission.id, "REJECTED");
-																}}
-																>
-																	<XCircle className="h-4 w-4" />
-																</Button>
-																<Button
-																	size="icon"
-																	variant="outline"
-																	className="h-9 w-9 rounded-xl border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-																	onClick={(event) => {
-																	event.stopPropagation();
-																	setSelectedId(submission.id);
-																	openContentModal(submission.id);
-																}}
-																	title="Preview"
-																>
-																	<Eye className="h-4 w-4" />
-																</Button>
-															</div>
-														) : (
-															<span className="text-xs font-semibold text-slate-400">
-																Reviewed
-															</span>
-														)}
+														<Button
+															size="icon"
+															variant="ghost"
+															className="h-9 w-9 rounded-xl border-none bg-white text-slate-500 hover:bg-slate-50"
+															onClick={() => setSelectedSubmission(submission)}
+															title="Open preview"
+														>
+															<Eye className="h-4 w-4" />
+														</Button>
 													</TableCell>
 												</TableRow>
 											);
 										})}
 
-								{!isLoading && filteredSubmissions.length === 0 && (
-									<TableRow>
-										<TableCell
-											colSpan={5}
-											className="h-32 text-center text-sm font-medium text-slate-500"
-										>
-											No submissions to review yet.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-						<div className="border-t border-slate-100 px-4 py-4">
-							<PaginationControls
-								page={page}
-								pageSize={pageSize}
-								totalItems={filteredSubmissions.length}
-								onPageChange={setPage}
-								className="mt-0"
-								disabled={isLoading}
-							/>
+									{!isSuccess && submissions.length === 0 && (
+										<TableRow>
+											<TableCell
+												colSpan={2}
+												className="h-32 text-center text-sm font-medium text-slate-500"
+											>
+												No submissions to review yet.
+											</TableCell>
+										</TableRow>
+									)}
+								</TableBody>
+							</Table>
+
 						</div>
 					</div>
-					<IslandCard className="flex flex-col gap-4 rounded-3xl border border-slate-200/80 bg-white px-5 py-5 shadow-[0_24px_60px_-45px_rgba(15,23,42,0.8)]">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-									Preview
-								</p>
-								<h2 className="text-lg font-bold text-slate-800">Uploaded File</h2>
-							</div>
-							
-						</div>
 
-						{previewSubmission ? (
-							<div className="space-y-4">
-								<div className="space-y-1">
-									<p className="text-sm font-semibold text-slate-800">
-										{previewSubmission.task.title}
-									</p>
-									<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-										{previewSubmission.task.mediaType} · {previewSubmission.collector.name}
-									</p>
-								</div>
+					<IslandCard className="flex flex-col gap-4 rounded-3xl border p-1">
+                          {selectedSubmission && (
+							<div className="relative overflow-hidden h-[68vh]">
+								{/* Left / Right chevrons centered vertically */}
+								<button
+									onClick={goPrev}
+									disabled={currentIndex <= 0}
+									aria-label="Previous submission"
+									className={`absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed`}
+								>
+									<ChevronLeft className="h-5 w-5 text-slate-700" />
+								</button>
 
-										<div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-											{previewUrl ? (
-												previewSubmission.task.mediaType === "IMAGE" ? (
-													<img
-														src={previewUrl}
-														alt={previewSubmission.task.title}
-														className="h-48 w-full object-cover"
-													/>
-												) : previewSubmission.task.mediaType === "VIDEO" ? (
-													<video
-														className="h-48 w-full object-cover"
-														controls
-														src={previewUrl}
-													/>
-												) : previewSubmission.task.mediaType === "AUDIO" ? (
-													<div className="p-4">
-														<audio controls className="w-full" src={previewUrl} />
-													</div>
-												) : (
-													<div className="flex h-48 flex-col items-center justify-center gap-3 p-4 text-center">
-														<p className="text-sm font-medium text-slate-500">
-															Preview unavailable for this file type.
-														</p>
-														<Button
-															variant="outline"
-															className="rounded-full border-slate-200"
-															asChild
-														>
-															<a href={previewUrl} target="_blank" rel="noreferrer">
-																Open File
-															</a>
-														</Button>
-													</div>
-												)
-											) : (
-												<div className="flex h-48 flex-col items-center justify-center gap-2 p-4 text-center">
-													<p className="text-sm font-medium text-slate-500">
-														File URL not available for preview.
-													</p>
-												</div>
-											)}
-										</div>
+								<button
+									onClick={goNext}
+									disabled={currentIndex < 0 || currentIndex >= submissions.length - 1}
+									aria-label="Next submission"
+									className={`absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed`}
+								>
+									<ChevronRight className="h-5 w-5 text-slate-700" />
+								</button>
 
-								<div className="flex items-center justify-between">
-									<Badge
-										className={cn(
-											"rounded-full border-none px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em]",
-											previewSubmission.status === "APPROVED"
-												? "bg-emerald-50 text-emerald-600"
-												: previewSubmission.status === "REJECTED"
-													? "bg-red-50 text-red-600"
-													: "bg-amber-50 text-amber-600"
-										)}
-									>
-										{previewSubmission.status}
-									</Badge>
-											<Button
-										variant="outline"
-										className="rounded-full border-slate-200"
-												onClick={() =>
-													openReviewDrawer(
-														previewSubmission.id,
-														previewSubmission.status === "PENDING"
-															? "APPROVED"
-															: previewSubmission.status
-													)
-												}
-									>
-												{previewSubmission.status === "PENDING"
-													? "Review"
-													: "View Decision"}
-									</Button>
-								</div>
+                                 {selectedSubmission.mediaType === "IMAGE" ? (
+                                     resolvedSelectedUploadUrl ? (
+                                         <Image
+                                             src={resolvedSelectedUploadUrl}
+                                             alt="submission"
+                                             fill
+                                             className="object-contain"
+                                             unoptimized
+                                         />
+                                     ) : (
+                                         <div className="flex h-full w-full items-center justify-center p-4">
+                                             <p className="text-sm font-medium text-slate-500">
+                                                 File URL not available for preview.
+                                             </p>
+                                         </div>
+                                     )
+                                 ) : selectedSubmission.mediaType === "VIDEO" ? (
+                                     <video
+                                         className="h-full w-full"
+                                         controls
+                                         src={resolvedSelectedUploadUrl}
+                                     />
+                                 ) : (
+                                     <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+                                         <p className="text-sm font-medium text-slate-500">
+                                             File URL not available for preview.
+                                         </p>
+                                     </div>
+                                 )}
 							</div>
-						) : (
-							<div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm font-medium text-slate-400">
-								Select a submission to preview.
-							</div>
-						)}
+                        )}
 					</IslandCard>
+
+
 				</div>
+
 			</div>
 
 			<Sheet open={reviewOpen} onOpenChange={setReviewOpen}>
@@ -522,16 +285,7 @@ export default function SubmissionsPage() {
 					</SheetHeader>
 
 					<div className="flex flex-1 flex-col gap-6 overflow-auto px-4 py-5">
-						{reviewTargetSubmission && reviewTargetSubmission.status !== "PENDING" && (
-							<div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-								<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-									Current Decision Note
-								</p>
-								<p className="text-sm font-medium text-slate-700">
-									{reviewTargetSubmission.approverNote?.trim() || "No note provided."}
-								</p>
-							</div>
-						)}
+
 						<div className="space-y-2">
 							<p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
 								Decision
@@ -569,8 +323,8 @@ export default function SubmissionsPage() {
 								Feedback Note
 							</p>
 							<Textarea
-								value={reviewNote}
-								onChange={(event) => setReviewNote(event.target.value)}
+								value={reviewerNote}
+								onChange={(event) => setReviewerNote(event.target.value)}
 								placeholder="Add a note for the collector"
 								className="min-h-28 rounded-2xl border-slate-200 bg-white"
 							/>
@@ -588,75 +342,6 @@ export default function SubmissionsPage() {
 					</SheetFooter>
 				</SheetContent>
 			</Sheet>
-
-			<Dialog open={contentOpen} onOpenChange={setContentOpen}>
-				<DialogContent className="sm:max-w-3xl">
-					<DialogHeader>
-						<DialogTitle>Uploaded Content</DialogTitle>
-						
-					</DialogHeader>
-
-					{contentTarget ? (
-						<div className="space-y-4">
-							<div className="space-y-1">
-								<p className="text-sm font-semibold text-slate-800">
-									{contentTarget.task.title}
-								</p>
-								<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-									{contentTarget.task.mediaType} · {contentTarget.collector.name}
-								</p>
-							</div>
-
-							<div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-								{contentUrl ? (
-									contentTarget.task.mediaType === "IMAGE" ? (
-										<img
-											src={contentUrl}
-											alt={contentTarget.task.title}
-											className="max-h-[60vh] w-full object-contain"
-										/>
-									) : contentTarget.task.mediaType === "VIDEO" ? (
-										<video
-											className="max-h-[60vh] w-full"
-											controls
-											src={contentUrl}
-										/>
-									) : contentTarget.task.mediaType === "AUDIO" ? (
-										<div className="p-4">
-											<audio controls className="w-full" src={contentUrl} />
-										</div>
-									) : (
-										<div className="flex h-48 flex-col items-center justify-center gap-3 p-4 text-center">
-											<p className="text-sm font-medium text-slate-500">
-												Preview unavailable for this file type.
-											</p>
-											<Button
-												variant="outline"
-												className="rounded-full border-slate-200"
-												asChild
-											>
-												<a href={contentUrl} target="_blank" rel="noreferrer">
-													Open File
-												</a>
-											</Button>
-										</div>
-									)
-								) : (
-									<div className="flex h-48 flex-col items-center justify-center gap-2 p-4 text-center">
-										<p className="text-sm font-medium text-slate-500">
-											No content uploaded for this submission.
-										</p>
-									</div>
-								)}
-							</div>
-						</div>
-					) : (
-						<div className="flex h-40 items-center justify-center text-sm text-slate-500">
-							No content selected.
-						</div>
-					)}
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }

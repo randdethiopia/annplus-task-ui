@@ -26,22 +26,24 @@ type AssignModalProps = {
 
 
 const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId }) => {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
    const { mutate: assignTask, isPending } = TaskApi.assign.useMutation(taskId ?? "");
 
   useEffect(() => {
-    if (!open) setSelectedIds([]);
+    if (!open) setSelectedId(null);
   }, [open]);
 
   const toggle = useCallback((id: string) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedId((prev) => (prev === id ? null : id));
   }, []);
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (selectedIds.length === 0) return;
-    assignTask({ collectorIds: selectedIds });
+    if (!selectedId) return;
+    console.log("Assigning task to user ID:", selectedId);
+
+    assignTask(selectedId);
     onClose();
   };
 
@@ -50,8 +52,8 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId 
       <DialogContent className="max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Assign Users</DialogTitle>
-            <DialogDescription>Select one or more users to assign to this task.</DialogDescription>
+            <DialogTitle>Assign User</DialogTitle>
+            <DialogDescription>Select a user to assign to this task.</DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 max-h-64 overflow-auto rounded-md border border-slate-100 p-2">
@@ -59,7 +61,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId 
               <div className="p-4 text-sm text-slate-500">No users available.</div>
             ) : (
               Array.isArray(users) && users.map((u) => {
-                const checked = selectedIds.includes(u.id);
+                const checked = selectedId === u.id;
                 return (
                   <label
                     key={u.id}
@@ -85,16 +87,16 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId 
             )}
           </div>
 
-          {/* single hidden form field with JSON stringified array of ids */}
-          <input type="hidden" name="assignees" value={JSON.stringify(selectedIds)} />
+          {/* single hidden form field with selected id — name matches backend's expected key */}
+          <input type="hidden" name="collectorId" value={selectedId ?? ""} />
 
           <DialogFooter className="mt-4">
             <div className="flex w-full items-center justify-end gap-3">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={selectedIds.length === 0}>
-                Assign ({selectedIds.length})
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!selectedId || isPending}>
+                Assign
               </Button>
             </div>
           </DialogFooter>

@@ -30,7 +30,6 @@ export default function Providers({
 			await Promise.allSettled([
 				queryClient.prefetchQuery({
 					queryKey: ["tasks"],
-					queryFn: fetchTasks,
 				}),
 				queryClient.prefetchQuery({
 					queryKey: ["data-collectors"],

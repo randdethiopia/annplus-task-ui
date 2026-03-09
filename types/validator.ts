@@ -76,7 +76,8 @@ export const CollectorWithRelationsSchema = CollectorSchema.extend({
 export const CreateTaskSchema = z.object({
   title: z.string().trim().min(1, "Task title is required"),
   description: z.string().trim().min(1, "Description is required"),
-  mediaType: TaskMediaTypeSchema,
+  imageCount: z.number().int().min(0, "Image count must be zero or a positive integer"),
+  videoCount: z.number().int().min(0, "Video count must be zero or a positive integer"),
 });
 
 export const CreateUserSchema = z.object({
@@ -89,20 +90,11 @@ export const CreateUserSchema = z.object({
 export const RegisterCollectorSchema = z
   .object({
     name: z.string().trim().min(2, "Name is too short"),
-    email: z.string().trim().email("Enter a valid email"),
-    phone: z.string().trim().min(6, "Enter a valid phone number"),
+    phone: z.string().trim().min(10, "Enter a valid phone number"),
     telegramUsername: z
       .string()
-      .trim()
-      .regex(/^@\w{2,}$/, "Telegram username must start with @"),
-    password: z.string().min(6, "Minimum 6 characters"),
-    confirmPassword: z.string().min(6, "Confirm your password"),
+      .trim(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
 
 
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;

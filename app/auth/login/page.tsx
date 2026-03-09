@@ -31,7 +31,7 @@ export default function LoginPage() {
   const { mutateAsync } = AuthApi.login.useMutation();
 
   useEffect(() => {
-    router.prefetch("/dashboard/Task");
+    router.prefetch("/dashboard/task");
   }, [router]);
 
   const onSubmit = async (input: LoginInput) => {
@@ -41,7 +41,7 @@ export default function LoginPage() {
       const data = await mutateAsync(input);
       setAccessToken(data.user.id, data.token);
       toast.success("Signed in successfully", { id: toastId });
-      router.push("/dashboard/Task");
+      router.push("/dashboard/task");
     } catch (error) {
       setServerError("Unable to sign in. Please try again.");
       toast.error("Unable to sign in. Please try again.", { id: toastId });

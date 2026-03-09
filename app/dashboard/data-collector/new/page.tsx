@@ -31,16 +31,25 @@ export default function NewDataCollectorPage() {
 
   const onSubmit = (values: CreateCollectorInput) => {
     const toastId = toast.loading("Registering collector...");
-    mutate(values, {
-      onSuccess: () => {
-        toast.success("Collector registered", { id: toastId });
-        reset({ name: "", phone: "", telegramUsername: "" });
-        setShowSuccess(true);
-      },
-      onError: () => {
-        toast.error("Failed to register collector", { id: toastId });
-      },
-    });
+
+    const telegramUsername =
+      values.telegramUsername && values.telegramUsername.trim()
+        ? values.telegramUsername.trim().replace(/^@+/, "")
+        : values.telegramUsername;
+
+    mutate(
+      { ...values, telegramUsername },
+      {
+        onSuccess: () => {
+          toast.success("Collector registered", { id: toastId });
+          reset({ name: "", phone: "", telegramUsername: "" });
+          setShowSuccess(true);
+        },
+        onError: () => {
+          toast.error("Failed to register collector", { id: toastId });
+        },
+      }
+    );
   };
 
   return (
@@ -58,7 +67,7 @@ export default function NewDataCollectorPage() {
               Register collector
             </h1>
             <p className="max-w-2xl text-sm font-medium text-slate-500 sm:text-base">
-              Add a data collector 
+              Add a data collector
             </p>
           </div>
         </header>

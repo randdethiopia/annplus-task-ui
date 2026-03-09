@@ -9,11 +9,71 @@ import { AxiosError } from "axios";
 import { toast } from "sonner";
 
 
-type Task = any; 
+export type TaskStatus = "PENDING" | "APPROVED" | "SUBMITTED" | "REJECTED"
+
+export type MediaType = "IMAGE" | "VIDEO"
+
+export interface Submission {
+  id: string
+  taskId: string
+  collectorId: string
+  mediaType: MediaType
+  uploadUrl: string
+  createdAt: string
+  updatedAt: string
+}
+export interface Task {
+  id: string
+  title: string
+  description: string
+  videoCount: number
+  imageCount: number
+  isAssigned: boolean
+  isActive: boolean
+  status: TaskStatus
+  createdById: string
+  createdAt: string
+  updatedAt: string
+  _count: {
+    submissions: number
+  }
+}
+
+export interface TaskWithSubmissions {
+  id: string
+  title: string
+  description: string
+  videoCount: number
+  imageCount: number
+  isActive: boolean
+  status: TaskStatus
+  createdById: string
+  reviewedById: string | null
+  reviewerNote: string | null
+  createdAt: string
+  updatedAt: string
+  submissions: Submission[]
+}
+
+export interface TaskDetailsResponse {
+  task: TaskWithSubmissions
+}
+
+export interface TasksResponse {
+  tasks: Task[]
+  totalPages: number
+  page: string
+  limit: string
+}
+
+
+
+
 type CreateTaskPayload = {
   title: string;
   description?: string;
-  mediaType?: "IMAGE" | "VIDEO";
+  imageCount: number;
+  videoCount: number;
 };
 
 type ToggleActivePayload = {
@@ -26,9 +86,19 @@ type AssignPayload = {
 };
 
 
+interface TaskQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
 
-export async function fetchTasks() {
-  return (await axios.get("/api/tasks")).data;
+interface ReviewTaskInput { 
+  status: TaskStatus;
+  reviewerNote: string;
+ }
+
+export async function fetchTasks(pagination: TaskQuery) {
+  return (await axios.get("/api/tasks", { params: pagination })).data;
 }
 
 export async function fetchTaskById(id: string) {
@@ -43,27 +113,33 @@ export async function toggleTaskActiveFn(payload: ToggleActivePayload) {
   return (await axios.patch(`/api/tasks/active/${payload.id}`, { isActive: payload.isActive })).data;
 }
 
-export async function assignUsersToTaskFn(id: string | null, payload: AssignPayload) {
-  return (await axios.post(`/api/tasks/assign/${id}`, { collectorIds: payload.collectorIds })).data;
+export async function assignUsersToTaskFn(id: string | null, collectorId: string) {
+  return (await axios.post(`/api/tasks/assign/${id}`, { collectorId })).data;
 }
 
-
+export async function reviewTaskFn(id: string, data: ReviewTaskInput) {
+  return (await axios.post(`/api/tasks/review/${id}`, data)).data;
+}
 
 const TaskApi = {
   getAll: {
-    useQuery: (options?: UseQueryOptions<Task[], AxiosError, any>) =>
+    useQuery: (
+      query: TaskQuery,
+      options?: UseQueryOptions<TasksResponse, AxiosError, any>
+    ) =>
       useQuery({
-        queryKey: ["tasks"],
-        queryFn: () => fetchTasks(),
+        queryKey: ["tasks", query],
+        queryFn: () => fetchTasks(query),
         ...options,
       }),
   },
 
   getById: {
-    useQuery: (id: string, options?: UseQueryOptions<Task, AxiosError>) =>
+    useQuery: (id: string | null, options?: UseQueryOptions<TaskDetailsResponse, AxiosError>) =>
       useQuery({
         queryKey: ["tasks", id],
-        queryFn: () => fetchTaskById(id),
+        enabled: !!id,
+        queryFn: () => fetchTaskById(id!),
         ...options,
       }),
   },
@@ -87,9 +163,9 @@ const TaskApi = {
   },
 
   assign: {
-    useMutation: (id: string, options?: UseMutationOptions<any, AxiosError, AssignPayload>) =>
+    useMutation: (id: string, options?: UseMutationOptions<any, AxiosError, string>) =>
       useMutation({
-        mutationFn: (data) => assignUsersToTaskFn(id, data),
+        mutationFn: (collectorId) => assignUsersToTaskFn(id, collectorId),
         ...options,
         onSuccess: (data) => {
           toast("LOADING");
@@ -97,6 +173,14 @@ const TaskApi = {
         },
       }),
   },
+  review: {
+      useMutation: (id: string, options?: UseMutationOptions<AxiosError, Task, ReviewTaskInput>) =>
+        useMutation({
+          mutationFn: (data) =>
+            reviewTaskFn(id, data),
+          ...options,
+        })
+    }
 };
 
 export default TaskApi;

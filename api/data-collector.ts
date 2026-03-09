@@ -15,6 +15,12 @@ export interface Collector {
   createdAt?: string;
 }
 
+export interface RegisterCollectorResponse {
+  message: string;
+  collector: Collector;
+  redirect: string;
+}
+
 const registerCollectorFn = async (data: RegisterCollectorInput) => {
   const response = await axios.post("/api/data-collector/register", data);
   return response.data;
@@ -29,7 +35,7 @@ export const getAllCollectorsFn = async (): Promise<Collector[]> => {
 export const dataCollectorApi = {
   register: {
     useMutation: (
-      options?: UseMutationOptions<unknown, unknown, RegisterCollectorInput>
+      options?: UseMutationOptions<RegisterCollectorResponse, unknown, RegisterCollectorInput>
     ) =>
       useMutation({
         mutationFn: (data: RegisterCollectorInput) => registerCollectorFn(data),

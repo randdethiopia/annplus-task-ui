@@ -23,14 +23,14 @@ export default function NewTaskPage() {
 	const [showSuccess, setShowSuccess] = useState(false);
 
 	const {
-		register,
-		handleSubmit,
-		reset,
-		formState: { errors, isSubmitting },
-	} = useForm<CreateTaskInput>({
-		resolver: zodResolver(CreateTaskSchema),
-		defaultValues: { title: "", description: "", mediaType: "IMAGE" },
-	});
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting },
+    } = useForm<CreateTaskInput>({
+        resolver: zodResolver(CreateTaskSchema),
+        defaultValues: { title: "", description: "", imageCount: 0, videoCount: 0 },
+    });
 
 	const { mutate, isPending } = TaskApi.create.useMutation();
 
@@ -41,7 +41,7 @@ export default function NewTaskPage() {
 		mutate(values, {
 			onSuccess: () => {
 				toast.success("Task published", { id: toastId });
-				reset({ title: "", description: "", mediaType: "IMAGE" });
+				reset({ title: "", description: "", imageCount: 0, videoCount: 0 });
 				setShowSuccess(true);
 			},
 			onError: () => {
@@ -96,7 +96,7 @@ export default function NewTaskPage() {
 								<Button
 									className="h-10 rounded-full border border-emerald-500 bg-emerald-600 px-5 text-white hover:bg-emerald-500"
 									type="button"
-									onClick={() => router.push("/dashboard/Task")}
+									onClick={() => router.push("/dashboard/task")}
 								>
 									View tasks
 								</Button>
@@ -177,34 +177,60 @@ export default function NewTaskPage() {
 								<h2 className="text-lg font-semibold text-slate-900">
 									Media Requirements
 								</h2>
-								<div>
-									<label
-										className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
-										htmlFor="task-media-type"
-									>
-										Media Type
-									</label>
-									<NativeSelect
-										id="task-media-type"
-										className="mt-2 h-12 w-full rounded-xl"
-										aria-invalid={!!errors.mediaType}
-										aria-describedby={
-											errors.mediaType ? "task-media-type-error" : undefined
-										}
-										{...register("mediaType")}
-									>
-										<NativeSelectOption value="IMAGE">Image</NativeSelectOption>
-										<NativeSelectOption value="VIDEO">Video</NativeSelectOption>
-									</NativeSelect>
-									{errors.mediaType?.message && (
-										<p
-											id="task-media-type-error"
-											className="mt-2 text-xs font-semibold text-rose-500"
-										>
-											{errors.mediaType.message}
-										</p>
-									)}
-								</div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div>
+                                        <label
+                                            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+                                            htmlFor="image-count"
+                                        >
+                                            Image count
+                                        </label>
+                                        <Input
+                                            id="image-count"
+                                            type="number"
+                                            placeholder="0"
+                                            className="mt-2 h-12 rounded-xl"
+                                            aria-invalid={!!errors.imageCount}
+                                            aria-describedby={errors.imageCount ? "image-count-error" : undefined}
+                                            {...register("imageCount", {
+                                                valueAsNumber: true,
+                                                min: { value: 0, message: "Must be 0 or greater" },
+                                            })}
+                                        />
+                                        {errors.imageCount?.message && (
+                                            <p id="image-count-error" className="mt-2 text-xs font-semibold text-rose-500">
+                                                {errors.imageCount.message}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+                                            htmlFor="video-count"
+                                        >
+                                            Video count
+                                        </label>
+                                        <Input
+                                            id="video-count"
+                                            type="number"
+                                            placeholder="0"
+                                            className="mt-2 h-12 rounded-xl"
+                                            aria-invalid={!!errors.videoCount}
+                                            aria-describedby={errors.videoCount ? "video-count-error" : undefined}
+                                            {...register("videoCount", {
+                                                valueAsNumber: true,
+                                                min: { value: 0, message: "Must be 0 or greater" },
+                                            })}
+                                        />
+                                        {errors.videoCount?.message && (
+                                            <p id="video-count-error" className="mt-2 text-xs font-semibold text-rose-500">
+                                                {errors.videoCount.message}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
 
 								<div className="flex justify-end w-full flex-col gap-3 sm:w-auto sm:flex-row">
 
