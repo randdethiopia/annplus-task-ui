@@ -66,6 +66,15 @@ export interface TasksResponse {
   limit: string
 }
 
+interface CollectorTasksResponse {
+  collectorId: string;
+  tasks: Task[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+  status: TaskStatus | null;
+}
 
 
 
@@ -97,12 +106,16 @@ interface ReviewTaskInput {
   reviewerNote: string;
  }
 
-export async function fetchTasks(pagination: TaskQuery) {
+export async function getTasksFn(pagination: TaskQuery) {
   return (await axios.get("/api/tasks", { params: pagination })).data;
 }
 
-export async function fetchTaskById(id: string) {
+export async function getTaskByIdFn(id: string) {
   return (await axios.get(`/api/tasks/${id}`)).data;
+}
+
+export async function getCollectorTasksFn(pagination: TaskQuery) {
+  return (await axios.get(`/api/tasks/collector-tasks`, { params: pagination })).data;
 }
 
 export async function createTaskFn(payload: CreateTaskPayload) {
@@ -129,7 +142,7 @@ const TaskApi = {
     ) =>
       useQuery({
         queryKey: ["tasks", query],
-        queryFn: () => fetchTasks(query),
+        queryFn: () => getTasksFn(query),
         ...options,
       }),
   },
@@ -139,7 +152,15 @@ const TaskApi = {
       useQuery({
         queryKey: ["tasks", id],
         enabled: !!id,
-        queryFn: () => fetchTaskById(id!),
+        queryFn: () => getTaskByIdFn(id!),
+        ...options,
+      }),
+  },
+  getCollectorTasks: {
+    useQuery: (query: TaskQuery, options?: UseQueryOptions<CollectorTasksResponse, AxiosError>) =>
+      useQuery({
+        queryKey: ["collector-tasks", query],
+        queryFn: () => getCollectorTasksFn(query),
         ...options,
       }),
   },
