@@ -4,17 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { sidebarItems } from "@/config/sidebarItems";
-import authStore, { useAuthStore } from "@/store/authStore";
+import useAuthStore from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { 
-  Users, 
-  ClipboardList, 
-  CheckSquare, 
-  UserCog,
+import {
+    Users,
+    ClipboardList,
+    CheckSquare,
+    UserCog,
     LayoutDashboard,
-    LogOut
+    LogOut,
+    UserIcon
 } from "lucide-react"; // Import Icons
 
 // Map your keys to actual Lucide components
@@ -28,27 +29,18 @@ const iconMap: Record<string, any> = {
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { role, hasHydrated } = useAuthStore();
-    const { logOut } = authStore();
+    const { logOut } = useAuthStore();
 
     const userSectionActive =
         pathname.startsWith("/dashboard/User") || pathname.startsWith("/dashboard/Users");
     const [isUserOpen, setIsUserOpen] = useState(userSectionActive);
-
-    // 1. Senior Safety: Wait for hydration to prevent errors
-    if (!hasHydrated) return null;
-
-    const visibleItems = sidebarItems.filter((item) => {
-        if (item.roles === "all") return true;
-        return item.roles.includes(role);
-    });
 
     const userItems = [
         { key: "create-user", label: "Create User", href: "/dashboard/User/create-user" },
         { key: "users", label: "Users", href: "/dashboard/User/users" },
     ];
 
-    const canSeeUserSection = ["admin"].includes(role);
+    const canSeeUserSection = true;
 
     return (
         <aside className="flex h-screen w-64 flex-col overflow-y-auto overscroll-contain border-r border-slate-200 bg-white px-4 py-8 shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
@@ -59,13 +51,12 @@ export default function Sidebar() {
                         AnnPlus
                     </h2>
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-500/70 ml-3">
-                    {role} Portal
-                </p>
+                {/* <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-500/70 ml-3">
+                </p> */}
             </div>
 
             <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
-                {visibleItems.map((item) => {
+                {sidebarItems.map((item) => {
                     const active = pathname?.startsWith(item.href);
                     const Icon = iconMap[item.key] || LayoutDashboard;
 
@@ -133,10 +124,10 @@ export default function Sidebar() {
             <div className="mt-auto p-2 border-t border-slate-50">
                 <div className="flex items-center gap-3 p-2">
                     <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700">
-                        {role[0].toUpperCase()}
+                        <UserIcon className="h-4 w-4" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-700 capitalize">{role}</span>
+                        <span className="text-xs font-bold text-slate-700 capitalize">Admin</span>
                         <span className="text-[10px] text-slate-400">Online</span>
                     </div>
                 </div>

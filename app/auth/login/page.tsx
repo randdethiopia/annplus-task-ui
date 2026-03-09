@@ -9,7 +9,7 @@ import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AuthApi from "@/api/auth";
-import authStore from "@/store/authStore";
+import useAuthStore from "@/store/authStore";
 
 interface LoginInput {
   email: string;
@@ -20,7 +20,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const { setAccessToken } = authStore();  
+  const { setAccessToken } = useAuthStore();  
 
   const {
     register,
