@@ -62,7 +62,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Task not found</h1>
-          <Button onClick={() => router.push('/datacollector/dashboard')} className="gap-2">
+          <Button onClick={() => router.push('/datacollector/dashboard/tasks')} className="gap-2">
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Button>
@@ -175,12 +175,12 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     toast.success('Task submitted successfully!')
     setIsCompleted(true)
     setIsSubmitting(false)
-    setTimeout(() => router.push('/datacollector/dashboard'), 1500)
+    setTimeout(() => router.push('/datacollector/dashboard/tasks'), 1500)
   }
 
   const handleSaveAndExit = () => {
     toast.success('Progress saved')
-    setTimeout(() => router.push('/datacollector/dashboard'), 300)
+    setTimeout(() => router.push('/datacollector/dashboard/tasks'), 300)
   }
 
   return (
@@ -189,7 +189,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Button
-              onClick={() => router.push('/datacollector/dashboard')}
+              onClick={() => router.push('/datacollector/dashboard/tasks')}
               variant="outline"
               size="icon"
               className="rounded-full"
