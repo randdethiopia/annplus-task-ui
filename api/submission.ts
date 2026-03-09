@@ -38,12 +38,21 @@ interface Submission {
   collector: Collector;
 }
 
+interface CreateSubmissionInput {
+	taskId: string;
+	uploadUrl: string;
+	mediaType: 'IMAGE' | 'VIDEO';
+}
 
 interface SubmissionUpdateInput {
   status: 'APPROVED' | 'REJECTED' | 'PENDING';
   approverNote: string | null;
 }
 
+
+const createSubmissionFn = async (data: CreateSubmissionInput) => {
+	return (await axiosInstance.post("/api/submissions", data)).data;
+};
 
 const getAllSubmissionsFn = async () => {
 	return (await axiosInstance.get("/api/submissions")).data;
@@ -55,6 +64,15 @@ const updateSubmissionFn = async (id: string, data: SubmissionUpdateInput) => {
 
 
 export const submissionApi = {
+	create: {
+		useMutation: (options?: UseMutationOptions<Submission, unknown, CreateSubmissionInput>) =>
+			useMutation({
+				mutationFn: (data: CreateSubmissionInput) =>
+					createSubmissionFn(data),
+				...options,
+			})
+	},
+	
 	getAll:{
 		useQuery: (options?: UseQueryOptions<Submission[]>) =>
 			useQuery({
