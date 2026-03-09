@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { ArrowLeft, Upload as UploadIcon } from 'lucide-react'
 import axios from 'axios'
+import { toast } from 'sonner'
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
@@ -17,10 +18,14 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
  
   const [task, setTask] = useState<Task>()
   const [file, setFile] = useState<File | null>(null)
+  const [isUploadingToS3, setIsUploadingToS3] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { data, isError, isLoading, isSuccess } = api.task.getById.useQuery(taskId)
-  const { mutate } = api.upload.getPresignedUrl.useMutation()
+  const { data, isError, isLoading, isSuccess, refetch } = api.task.getById.useQuery(taskId)
+  const { mutateAsync: getPresignedUrl, isPending: isGettingPresignedUrl } =
+    api.upload.getPresignedUrl.useMutation()
+  const { mutateAsync: createSubmission, isPending: isCreatingSubmission } =
+    api.submission.create.useMutation()
   
 
   useEffect(() => {
@@ -42,36 +47,81 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const uploadFileToS3 = async (uploadUrl: string, file: File, contentType: string) => {
+    setIsUploadingToS3(true)
     try {
       await axios.put(uploadUrl, file, {
         headers: {
           'Content-Type': contentType,
         },
       })
-      console.log('File uploaded successfully')
-      return true;
+      return true
     } catch (error) {
-      console.error('Error uploading file:', error)
-      return false;
+      return false
+    } finally {
+      setIsUploadingToS3(false)
     }
   }
 
-  const handleSubmit = () => {
-    if (file) {
-      console.log(file.name)
-      mutate(file.name, {
-        onSuccess: (data) => {
-          console.log('Presigned URL obtained:', data)
-          uploadFileToS3(data.uploadUrl, file, data.contentType).then(success => {
-            if (success) {
-              alert('File uploaded successfully!')
-            } else {
-              alert('Failed to upload file. Please try again.')
-            }
-          })
+  const handleSubmit = async () => {
+    if (!file) return
+
+    const mediaType = file.type.startsWith('image/')
+      ? 'IMAGE'
+      : file.type.startsWith('video/')
+        ? 'VIDEO'
+        : null
+
+    if (!mediaType) {
+      toast.error('Unsupported file type.')
+      return
+    }
+
+    try {
+      const presigned = await getPresignedUrl(file.name)
+      const isUploadSuccess = await uploadFileToS3(
+        presigned.uploadUrl,
+        file,
+        presigned.contentType
+      )
+
+      if (!isUploadSuccess) {
+        toast.error('Failed to upload file. Please try again.')
+        return
+      }
+
+      await createSubmission({
+        taskId,
+        uploadUrl: presigned.objectUrl,
+        mediaType,
+      })
+
+      setTask((prevTask) => {
+        if (!prevTask) return prevTask
+
+        const nextImages =
+          mediaType === 'IMAGE' ? prevTask.uploaded.images + 1 : prevTask.uploaded.images
+        const nextVideos =
+          mediaType === 'VIDEO' ? prevTask.uploaded.videos + 1 : prevTask.uploaded.videos
+
+        return {
+          ...prevTask,
+          uploaded: {
+            images: nextImages,
+            videos: nextVideos,
+            total: nextImages + nextVideos,
+          },
         }
-    })
-  }
+      })
+
+      toast.success('Submission created successfully.')
+      void refetch()
+      setFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } catch (error) {
+      toast.error('Failed to submit upload. Please try again.')
+    }
   }
 
   if (isLoading) return <div className="min-h-screen bg-background" />
@@ -121,8 +171,14 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             onChange={handleFileChange}
           />
           {file && <p className="mb-4">Selected: {file.name}</p>}
-          <Button onClick={handleSubmit} disabled={!file} className="w-full bg-green-600 text-white hover:bg-green-700">
-            Submit
+          <Button
+            onClick={() => { void handleSubmit() }}
+            disabled={!file || isUploadingToS3 || isGettingPresignedUrl || isCreatingSubmission}
+            className="w-full bg-green-600 text-white hover:bg-green-700"
+          >
+            {isUploadingToS3 || isGettingPresignedUrl || isCreatingSubmission
+              ? 'Submitting...'
+              : 'Submit'}
           </Button>
         </div>
 

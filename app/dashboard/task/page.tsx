@@ -211,14 +211,13 @@ export default function TasksPage() {
                                                 Assign
                                             </Button>
                                             }
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
+                                            <Link
+                                                href={`/dashboard/task/${task.id}`}
                                                 className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100"
                                                 onClick={() => setSelectedId(task.id)}
                                             >
                                                 <Eye className="h-5 w-5 text-blue-600" />
-                                            </Button>
+                                            </Link>
                                         </TableCell>
                                     </TableRow>
                                 ))
