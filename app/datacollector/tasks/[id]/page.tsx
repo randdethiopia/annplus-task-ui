@@ -34,16 +34,61 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     }
   }, [data, isSuccess])
 
-  const overallProgress = task
-    ? Math.round(
-        ((task.uploaded.images + task.uploaded.videos) /
-          (task.imageCount + task.videoCount)) *
-          100
-      )
+  const totalRequiredUploads = task ? task.imageCount + task.videoCount : 0
+  const totalUploadedFiles = task ? task.uploaded.images + task.uploaded.videos : 0
+  const overallProgress = totalRequiredUploads
+    ? Math.round((totalUploadedFiles / totalRequiredUploads) * 100)
     : 0
+  const imageProgress = task?.imageCount
+    ? Math.round((task.uploaded.images / task.imageCount) * 100)
+    : 0
+  const videoProgress = task?.videoCount
+    ? Math.round((task.uploaded.videos / task.videoCount) * 100)
+    : 0
+  const canUploadImages = !!task && task.status === 'PENDING' && task.uploaded.images < task.imageCount
+  const canUploadVideos = !!task && task.status === 'PENDING' && task.uploaded.videos < task.videoCount
+  const canUpload = canUploadImages || canUploadVideos
+
+  const getMediaType = (selectedFile: File) => {
+    if (selectedFile.type.startsWith('image/')) return 'IMAGE'
+    if (selectedFile.type.startsWith('video/')) return 'VIDEO'
+    return null
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) setFile(e.target.files[0])
+    if (!canUpload) {
+      e.target.value = ''
+      return
+    }
+
+    const selectedFile = e.target.files?.[0]
+
+    if (!selectedFile) return
+
+    const mediaType = getMediaType(selectedFile)
+
+    if (!mediaType) {
+      toast.error('Unsupported file type.')
+      e.target.value = ''
+      setFile(null)
+      return
+    }
+
+    if (mediaType === 'IMAGE' && !canUploadImages) {
+      toast.error('Required image uploads are already satisfied for this task.')
+      e.target.value = ''
+      setFile(null)
+      return
+    }
+
+    if (mediaType === 'VIDEO' && !canUploadVideos) {
+      toast.error('Required video uploads are already satisfied for this task.')
+      e.target.value = ''
+      setFile(null)
+      return
+    }
+
+    setFile(selectedFile)
   }
 
   const uploadFileToS3 = async (uploadUrl: string, file: File, contentType: string) => {
@@ -65,14 +110,33 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const handleSubmit = async () => {
     if (!file) return
 
-    const mediaType = file.type.startsWith('image/')
-      ? 'IMAGE'
-      : file.type.startsWith('video/')
-        ? 'VIDEO'
-        : null
+    if (!canUpload) {
+      toast.error('Uploads are only allowed while this task is pending.')
+      return
+    }
+
+    const mediaType = getMediaType(file)
 
     if (!mediaType) {
       toast.error('Unsupported file type.')
+      return
+    }
+
+    if (mediaType === 'IMAGE' && !canUploadImages) {
+      toast.error('Required image uploads are already satisfied for this task.')
+      setFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+
+    if (mediaType === 'VIDEO' && !canUploadVideos) {
+      toast.error('Required video uploads are already satisfied for this task.')
+      setFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
       return
     }
 
@@ -159,35 +223,88 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           <p className="text-slate-700 text-sm leading-relaxed">{task.description}</p>
         </Card>
 
-        <div className="bg-white p-6 rounded shadow-sm mb-8">
-          <Button onClick={() => fileInputRef.current?.click()} className="mb-4" variant="outline">
-            <UploadIcon className="w-4 h-4 mr-2" />
-            Select File
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          {file && <p className="mb-4">Selected: {file.name}</p>}
-          <Button
-            onClick={() => { void handleSubmit() }}
-            disabled={!file || isUploadingToS3 || isGettingPresignedUrl || isCreatingSubmission}
-            className="w-full bg-green-600 text-white hover:bg-green-700"
-          >
-            {isUploadingToS3 || isGettingPresignedUrl || isCreatingSubmission
-              ? 'Submitting...'
-              : 'Submit'}
-          </Button>
-        </div>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div className="bg-white p-6 rounded shadow-sm">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="mb-4"
+              variant="outline"
+              disabled={!canUpload}
+            >
+              <UploadIcon className="w-4 h-4 mr-2" />
+              Select File
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={!canUpload}
+            />
+            {file && <p className="mb-4">Selected: {file.name}</p>}
+            {!canUpload && (
+              <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                Uploads are disabled because this task status is {task.status.toLowerCase()}.
+              </p>
+            )}
+            {canUpload && (!canUploadImages || !canUploadVideos) && (
+              <p className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {!canUploadImages && 'Image uploads are complete. '}
+                {!canUploadVideos && 'Video uploads are complete.'}
+              </p>
+            )}
+            <Button
+              onClick={() => { void handleSubmit() }}
+              disabled={
+                !canUpload ||
+                !file ||
+                isUploadingToS3 ||
+                isGettingPresignedUrl ||
+                isCreatingSubmission
+              }
+              className="w-full bg-green-600 text-white hover:bg-green-700 disabled:bg-slate-300 disabled:text-slate-600"
+            >
+              {isUploadingToS3 || isGettingPresignedUrl || isCreatingSubmission
+                ? 'Submitting...'
+                : 'Submit'}
+            </Button>
+          </div>
 
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-lg mb-8">
-          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Overall Progress</p>
-          <p className="text-3xl font-bold text-slate-900 mt-1">
-            {task.uploaded.images + task.uploaded.videos}/{task.imageCount + task.videoCount}
-          </p>
-          <Progress value={overallProgress} className="h-2 mt-2" />
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-lg">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Overall Progress</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">
+                {totalUploadedFiles}/{totalRequiredUploads}
+              </p>
+              <Progress value={overallProgress} className="h-2 mt-2" />
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Images</p>
+                  <p className="text-xs text-slate-500">Uploaded image files</p>
+                </div>
+                <p className="text-sm font-semibold text-slate-700">
+                  {task.uploaded.images}/{task.imageCount}
+                </p>
+              </div>
+              <Progress value={imageProgress} className="h-2 mt-3" />
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Videos</p>
+                  <p className="text-xs text-slate-500">Uploaded video files</p>
+                </div>
+                <p className="text-sm font-semibold text-slate-700">
+                  {task.uploaded.videos}/{task.videoCount}
+                </p>
+              </div>
+              <Progress value={videoProgress} className="h-2 mt-3" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
