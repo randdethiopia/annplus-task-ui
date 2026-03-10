@@ -191,7 +191,7 @@ export default function TasksPage() {
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
                                             <Link
-                                            href={`/dashboard/submission?taskId=${task.id}`}
+                                            href={`/dashboard/task/${task.id}`}
                                             >
                                              <Button
                                                 variant="ghost"
@@ -211,13 +211,6 @@ export default function TasksPage() {
                                                 Assign
                                             </Button>
                                             }
-                                            <Link
-                                                href={`/dashboard/task/${task.id}`}
-                                                className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100"
-                                                onClick={() => setSelectedId(task.id)}
-                                            >
-                                                <Eye className="h-5 w-5 text-blue-600" />
-                                            </Link>
                                         </TableCell>
                                     </TableRow>
                                 ))
