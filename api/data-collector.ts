@@ -5,7 +5,7 @@ export interface RegisterCollectorInput {
   name: string;
   phone: string;
   telegramUsername: string;
-  password: string;
+  password?: string;
 }
 
 export interface Collector {
