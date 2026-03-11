@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -17,7 +16,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { dataCollectorApi } from "@/api/data-collector";
 
 export default function RegisterPage() {
-	const router = useRouter();
 	const [serverError, setServerError] = useState<string | null>(null);
 
 	const {
@@ -44,6 +42,7 @@ export default function RegisterPage() {
 					name: input.name,
 					phone: input.phone,
 					telegramUsername,
+					password: input.password,
 				},
 				{
 					onSuccess: (data) => {
@@ -160,6 +159,65 @@ export default function RegisterPage() {
 										{errors.telegramUsername && (
 											<p id="telegram-error" className="mt-2 text-xs font-semibold text-rose-500">
 												{errors.telegramUsername.message}
+											</p>
+										)}
+									</div>
+								</div>
+
+								<div className="grid gap-4 sm:grid-cols-2">
+									<div>
+										<label
+											htmlFor="password"
+											className="text-xs font-semibold uppercase text-slate-400"
+										>
+											Password
+										</label>
+										<Input
+											id="password"
+											type="password"
+											placeholder="Create a password"
+											className="mt-2 h-11 rounded-xl"
+											aria-invalid={!!errors.password}
+											aria-describedby={errors.password ? "password-error" : undefined}
+											{...register("password", {
+												required: "Password is required",
+												minLength: {
+													value: 6,
+													message: "Password must be at least 6 characters",
+												},
+											})}
+										/>
+										{errors.password && (
+											<p id="password-error" className="mt-2 text-xs font-semibold text-rose-500">
+												{errors.password.message}
+											</p>
+										)}
+									</div>
+
+									<div>
+										<label
+											htmlFor="confirmPassword"
+											className="text-xs font-semibold uppercase text-slate-400"
+										>
+											Confirm password
+										</label>
+										<Input
+											id="confirmPassword"
+											type="password"
+											placeholder="Confirm your password"
+											className="mt-2 h-11 rounded-xl"
+											aria-invalid={!!errors.confirmPassword}
+											aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+											{...register("confirmPassword", {
+												required: "Please confirm your password",
+											})}
+										/>
+										{errors.confirmPassword && (
+											<p
+												id="confirm-password-error"
+												className="mt-2 text-xs font-semibold text-rose-500"
+											>
+												{errors.confirmPassword.message}
 											</p>
 										)}
 									</div>
