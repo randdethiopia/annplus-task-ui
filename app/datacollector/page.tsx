@@ -14,7 +14,7 @@ export default function Home() {
       return
     }
 
-    router.replace('/auth/datacollector/login')
+    router.replace('/auth/datacollector')
   }, [router])
 
   return <main className="min-h-screen bg-background" />
