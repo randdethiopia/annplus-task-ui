@@ -57,7 +57,7 @@ export default function Sidebar() {
             localStorage.removeItem("isAuthenticated");
             toast.success("Signed out", { id: toastId });
             window.setTimeout(() => {
-              router.push("/auth/datacollector/login");
+              router.push("/auth/datacollector");
             }, 400);
           }}
           className="mt-2 h-10 w-full justify-start gap-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100"
