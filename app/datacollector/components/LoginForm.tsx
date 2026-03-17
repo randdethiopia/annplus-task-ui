@@ -5,12 +5,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
-import { Lock, Phone } from 'lucide-react'
+import { ArrowLeft, Lock, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import AuthApi from '@/api/auth'
 import useAuthStore from '@/store/authStore'
 import { z } from 'zod'
+import { Spinner } from '@/components/ui/spinner'
+import { useState } from 'react'
 
 const dataCollectorLoginSchema = z.object({
   phone: z
@@ -25,6 +26,7 @@ export default function LoginForm() {
   const router = useRouter()
   const { setAccessToken } = useAuthStore()
   const { mutateAsync: login } = AuthApi.loginDataCollector.useMutation()
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -46,87 +48,84 @@ export default function LoginForm() {
 
   const onSubmit = async (values: DataCollectorLoginValues) => {
     const toastId = toast.loading('Logging in...')
+    setServerError(null)
     try {
       const data = await login(values)
       setAccessToken(data.collector.id, data.token, 'collector')
       toast.success('Login successful!', { id: toastId })
       router.push('/datacollector/tasks')
     } catch {
+      setServerError('Login failed. Please check your credentials and try again.')
       toast.error('Login failed. Please check your credentials and try again.', { id: toastId })
     }
   }
 
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background to-secondary">
-      <Card className="w-full max-w-md p-8 shadow-lg">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-primary p-3 rounded-lg">
-              <Lock className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">Login</h1>
-          <p className="text-muted-foreground mt-2">Enter your credentials to continue</p>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div className="space-y-2">
-            <label htmlFor="phone" className="text-sm font-medium text-foreground">
-              Phone Number
+    <form onSubmit={handleSubmit(onSubmit)} aria-label="login form">
+      <div className="relative overflow-hidden px-6 py-6 sm:px-6">
+        <div className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="phone" className="text-xs font-semibold uppercase text-slate-400">
+              Phone number
             </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="09xxxxxxxx"
-                {...register('phone')}
-                onChange={handlePhoneChange}
-                className="pl-10 text-base"
-                disabled={isSubmitting}
-                aria-invalid={!!errors.phone}
-              />
-            </div>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="09xxxxxxxx"
+              className="mt-2 h-11 rounded-xl"
+              aria-invalid={!!errors.phone}
+              aria-describedby={errors.phone ? "phone-error" : undefined}
+              {...register('phone', { required: "Phone number is required" })}
+              onChange={handlePhoneChange}
+            />
             {errors.phone && (
-              <p className="text-xs font-medium text-rose-500">{errors.phone.message}</p>
+              <p id="phone-error" className="mt-2 text-xs font-semibold text-rose-500">
+                {errors.phone.message}
+              </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              Format: 09xxxxxxxx (10 digits)
-            </p>
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
+          <div>
+            <label htmlFor="password" className="text-xs font-semibold uppercase text-slate-400">
               Password
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                {...register('password')}
-                className="pl-10 text-base"
-                disabled={isSubmitting}
-                aria-invalid={!!errors.password}
-              />
-            </div>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              className="mt-2 h-11 rounded-xl"
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
+              {...register('password', { required: "Password is required" })}
+            />
             {errors.password && (
-              <p className="text-xs font-medium text-rose-500">{errors.password.message}</p>
+              <p id="password-error" className="mt-2 text-xs font-semibold text-rose-500">
+                {errors.password.message}
+              </p>
             )}
           </div>
-
+        </div>
+        {serverError && (
+          <p className="mt-4 text-sm font-semibold text-rose-500">{serverError}</p>
+        )}
+        <div className="mt-6 flex justify-between">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
           <Button
             type="submit"
-            className="w-full mt-6 text-base h-10"
+            className="h-11 rounded-xl bg-slate-900 px-6 text-white hover:bg-slate-800"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Logging in...' : 'Login'}
+            {isSubmitting && <Spinner />}
+            Login
           </Button>
-        </form>
-
-      </Card>
-    </div>
+        </div>
+      </div>
+    </form>
   )
 }

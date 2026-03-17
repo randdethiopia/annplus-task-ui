@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 
 import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const { setAccessToken } = useAuthStore();  
+  const { setAccessToken } = useAuthStore();
 
   const {
     register,
@@ -49,7 +50,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-8 relative">
+
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-full max-w-md"
@@ -111,7 +113,16 @@ export default function LoginPage() {
             <p className="mt-4 text-sm font-semibold text-rose-500">{serverError}</p>
           )}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-between">
+
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
             <Button
               type="submit"
               className="h-11 rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-700"
