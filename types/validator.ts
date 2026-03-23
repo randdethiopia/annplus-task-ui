@@ -87,10 +87,16 @@ export const CreateUserSchema = z.object({
   role: z.enum(["SUPERVISOR", "ADMIN", "COLLECTOR"]),
 });
 
+const registerCollectorPhoneSchema = z
+  .string()
+  .trim()
+  .min(1, "Phone number is required")
+  .regex(/^09\d{8}$/, "Phone number must start with 09 and be 10 digits");
+
 export const RegisterCollectorSchema = z
   .object({
     name: z.string().trim().min(2, "Name is too short"),
-    phone: z.string().trim().min(10, "Enter a valid phone number"),
+    phone: registerCollectorPhoneSchema,
     telegramUsername: z
       .string()
       .trim(),
