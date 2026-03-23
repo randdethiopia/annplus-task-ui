@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, LogOut } from "lucide-react";
+import { ClipboardList, KeyRound, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import useAuthStore from "@/store/authStore";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ export default function Sidebar() {
   const { logOut, role } = useAuthStore();
 
   const tasksHref = "/datacollector/tasks";
+  const changePasswordHref = "/datacollector/change-password";
 
   const roleLabel = role ?? "collector";
   const roleInitial = roleLabel[0]?.toUpperCase() ?? "C";
@@ -36,6 +37,13 @@ export default function Sidebar() {
             className= "h-5 w-5 text-blue-600"
           />
           Tasks
+        </Link>
+        <Link
+          href={changePasswordHref}
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+        >
+          <KeyRound className="h-5 w-5 text-slate-400" />
+          Change Password
         </Link>
       </nav>
 
