@@ -2,11 +2,23 @@
 
 import { useMemo, useState } from "react";
 import { Eye, Search } from "lucide-react";
+import { toast } from "sonner";
 
 import { IslandCard } from "@/components/icard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import {
 	Table,
 	TableBody,
@@ -15,14 +27,38 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { dataCollectorApi } from "@/api/data-collector";
+import { Collector, dataCollectorApi } from "@/api/data-collector";
 import Link from "next/link";
 
 export default function DataCollectorsPage() {
 	const { data: collectors, isLoading } = dataCollectorApi.getAll.useQuery();
+	const { mutate: resetPassword, isPending: isResetPending } =
+		dataCollectorApi.resetPassword.useMutation();
     
 	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [collectorToReset, setCollectorToReset] = useState<Collector | null>(null);
 	const [search, setSearch] = useState("");
+
+
+	const handleResetPassword = () => {
+		if (!collectorToReset) return;
+
+		const targetCollector = collectorToReset;
+		const toastId = toast.loading(`Resetting password for ${targetCollector.name}...`);
+
+		resetPassword(targetCollector.id, {
+			onSuccess: (response) => {
+				toast.success(
+					response?.message || `Password reset for ${targetCollector.name}`,
+					{ id: toastId }
+				);
+				setCollectorToReset(null);
+			},
+			onError: () => {
+				toast.error("Failed to reset password", { id: toastId });
+			},
+		});
+	};
 
 	const filteredData = useMemo(() => {
 		if (!collectors) return [];
@@ -117,14 +153,25 @@ export default function DataCollectorsPage() {
 												: "-"}
 										</TableCell>
 										<TableCell className="pr-4 text-right">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100"
-												onClick={() => setSelectedId(collector.id)}
-											>
-												<Eye className="h-5 w-5 text-blue-600" />
-											</Button>
+											<div className="flex justify-end gap-2">
+												<Button
+													variant="outline"
+													size="sm"
+													className="rounded-xl border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+													onClick={() => setCollectorToReset(collector)}
+													disabled={isResetPending}
+												>
+													Reset password
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100"
+													onClick={() => setSelectedId(collector.id)}
+												>
+													<Eye className="h-5 w-5 text-blue-600" />
+												</Button>
+											</div>
 										</TableCell>
 									</TableRow>
 								))
@@ -144,6 +191,35 @@ export default function DataCollectorsPage() {
 				id={selectedId}
 				onClose={() => setSelectedId(null)}
 			/> */}
+
+			<AlertDialog
+				open={!!collectorToReset}
+				onOpenChange={(open) => {
+					if (!open && !isResetPending) {
+						setCollectorToReset(null);
+					}
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Reset collector password?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will reset the password for {collectorToReset?.name}. They will
+							 need to use the new password to log in.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isResetPending}>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							variant="destructive"
+							onClick={handleResetPassword}
+							disabled={isResetPending}
+						>
+							{isResetPending ? "Resetting..." : "Yes, reset password"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
