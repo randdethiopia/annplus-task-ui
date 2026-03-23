@@ -22,13 +22,26 @@ export function RegisterForm() {
 
   const {
     register,
+    setValue,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterCollectorInput>({
     resolver: zodResolver(RegisterCollectorSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      telegramUsername: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   const { mutateAsync } = dataCollectorApi.register.useMutation();
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setValue("phone", value, { shouldDirty: true, shouldValidate: true });
+  };
 
   const onSubmit = async (input: RegisterCollectorInput) => {
     const toastId = toast.loading("Creating your account...");
@@ -53,7 +66,7 @@ export function RegisterForm() {
           },
         }
       );
-    } catch (error) {
+    } catch {
       setServerError("Unable to create account. Please try again.");
       toast.error("Unable to create account. Please try again.", { id: toastId });
     }
@@ -99,14 +112,16 @@ export function RegisterForm() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+251 900 000 000"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="09xxxxxxxx"
                 className="mt-2 h-11 rounded-xl"
                 aria-invalid={!!errors.phone}
                 aria-describedby={errors.phone ? "phone-error" : undefined}
                 {...register("phone", {
                   required: "Phone number is required",
-                  minLength: { value: 6, message: "Enter a valid phone number" },
                 })}
+                onChange={handlePhoneChange}
               />
               {errors.phone && (
                 <p id="phone-error" className="mt-2 text-xs font-semibold text-rose-500">
