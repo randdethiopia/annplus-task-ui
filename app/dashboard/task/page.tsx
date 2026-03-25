@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import AssignModal from "./assign-modal";
 import { dataCollectorApi } from "@/api/data-collector";
 import { Pagination } from "@/components/pagination";
+import { ExportTask } from "./export-task";
 
 
 const statusOptions = ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"];
@@ -190,6 +191,10 @@ export default function TasksPage() {
                                             {task._count.submissions ?? 0} items
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
+                                            {
+                                                task.status === "APPROVED" &&
+                                                <ExportTask taskId={task.id} />
+                                            }
                                             <Link
                                             href={`/dashboard/task/${task.id}`}
                                             >
