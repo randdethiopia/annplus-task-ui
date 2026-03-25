@@ -136,6 +136,10 @@ export async function reviewTaskFn(id: string, data: ReviewTaskInput) {
   return (await axios.post(`/api/tasks/review/${id}`, data)).data;
 }
 
+export async function archieveTaskFn(id: string) {
+  return (await axios.post(`/api/tasks/archive/${id}`)).data;
+}
+
 const TaskApi = {
   getAll: {
     useQuery: (
@@ -201,6 +205,13 @@ const TaskApi = {
       useMutation({
         mutationFn: (data) =>
           reviewTaskFn(id, data),
+        ...options,
+      })
+  },
+  archieve: {
+    useMutation: (options?: UseMutationOptions<AxiosError, Task, string>) =>
+      useMutation({
+        mutationFn: (id) => archieveTaskFn(id),
         ...options,
       })
   }

@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Eye, Plus, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Archive, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { IslandCard } from "@/components/icard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Table,
     TableBody,
@@ -23,16 +33,19 @@ import { dataCollectorApi } from "@/api/data-collector";
 import { Pagination } from "@/components/pagination";
 import { ExportTask } from "./export-task";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import api from "@/api";
+import { toast } from "sonner";
 
 
 const statusOptions = ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"];
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [taskToAssign, setTaskToAssign] = useState<string | null>(null);
+    const [taskToArchive, setTaskToArchive] = useState<Task | null>(null);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<typeof statusOptions[number]>("PENDING");
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
 
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
@@ -46,7 +59,7 @@ export default function TasksPage() {
         sortOrder,
     });
     const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = dataCollectorApi.getAll.useQuery();
-    const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
+    const { mutate: archiveTask, isPending: isArchivePending } = api.task.archieve.useMutation();
 
 
     useEffect(() => {
@@ -69,6 +82,25 @@ export default function TasksPage() {
                     : secondTimestamp - firstTimestamp;
             })
         );
+    };
+
+    const handleArchive = () => {
+        if (!taskToArchive) {
+            return;
+        }
+
+        archiveTask(taskToArchive.id, {
+            onSuccess: () => {
+                setTasks((currentTasks) =>
+                    currentTasks.filter((task) => task.id !== taskToArchive.id)
+                );
+                setTaskToArchive(null);
+                toast.success("Task archived successfully");
+            },
+            onError: () => {
+                toast.error("Failed to archive task");
+            },
+        });
     };
 
 
@@ -227,8 +259,18 @@ export default function TasksPage() {
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
                                             {
-                                                task.status === "APPROVED" &&
-                                                <ExportTask taskId={task.id} />
+                                                    task.status === "APPROVED" &&
+                                                    <>
+                                                    <ExportTask taskId={task.id} />
+                                                    <Button
+                                                    variant="ghost"
+                                                    className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
+                                                    onClick={() => setTaskToArchive(task)}
+                                                >
+                                                    <Archive className="mr-2 h-4 w-4" />
+                                                    Archive
+                                                </Button>
+                                                </>
                                             }
                                             { task.status !== "PENDING" &&
                                             <Link
@@ -292,6 +334,39 @@ export default function TasksPage() {
                     taskId={taskToAssign as string}
                     onClose={() => setIsAssignModalOpen(false)}
                 />}
+
+            <AlertDialog
+                open={!!taskToArchive}
+                onOpenChange={(open) => {
+                    if (!open && !isArchivePending) {
+                        setTaskToArchive(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Archive task?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {taskToArchive
+                                ? `This will archive "${taskToArchive.title}" and remove it from the current tasks list.`
+                                : "This will archive the selected task."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isArchivePending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                handleArchive();
+                            }}
+                            disabled={isArchivePending}
+                        >
+                            {isArchivePending ? "Archiving..." : "Yes, archive task"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
