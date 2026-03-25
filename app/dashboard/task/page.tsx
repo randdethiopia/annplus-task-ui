@@ -230,6 +230,7 @@ export default function TasksPage() {
                                                 task.status === "APPROVED" &&
                                                 <ExportTask taskId={task.id} />
                                             }
+                                            { task.status !== "PENDING" &&
                                             <Link
                                             href={`/dashboard/task/${task.id}`}
                                             >
@@ -240,16 +241,21 @@ export default function TasksPage() {
                                                 Submissions
                                             </Button>
                                             </Link>
+                                            }
                                             {
-                                             task.isAssigned ?
-                                                <Badge> Assigned </Badge> :
-                                            <Button
-                                                variant="ghost"
-                                                className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
-                                                onClick={() => { setTaskToAssign(task.id); setIsAssignModalOpen(true) }}
-                                            >
-                                                Assign
-                                            </Button>
+                                                task.status === "PENDING" && (
+                                                    task.isAssigned ? (
+                                                        <Badge>Assigned</Badge>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
+                                                            onClick={() => { setTaskToAssign(task.id); setIsAssignModalOpen(true); }}
+                                                        >
+                                                            Assign
+                                                        </Button>
+                                                    )
+                                                )
                                             }
                                         </TableCell>
                                     </TableRow>
