@@ -67,6 +67,10 @@ export interface TasksResponse {
   limit: string
 }
 
+interface MutationMessageResponse {
+  message: string;
+}
+
 interface CollectorTasksResponse {
   collectorId: string;
   tasks: Task[];
@@ -91,15 +95,12 @@ type ToggleActivePayload = {
   isActive: boolean;
 };
 
-type AssignPayload = {
-  collectorIds: string[];
-};
-
 
 interface TaskQuery {
   page?: number;
   limit?: number;
   status?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 interface ReviewTaskInput {
@@ -139,10 +140,10 @@ const TaskApi = {
   getAll: {
     useQuery: (
       query: TaskQuery,
-      options?: UseQueryOptions<TasksResponse, AxiosError, any>
+      options?: UseQueryOptions<TasksResponse, AxiosError>
     ) =>
       useQuery({
-        queryKey: ["tasks", query],
+        queryKey: ["tasks", { page: query.page, limit: query.limit, status: query.status }],
         queryFn: () => getTasksFn(query),
         ...options,
       }),
@@ -167,7 +168,7 @@ const TaskApi = {
   },
 
   create: {
-    useMutation: (options?: UseMutationOptions<any, AxiosError, CreateTaskPayload>) =>
+    useMutation: (options?: UseMutationOptions<unknown, AxiosError, CreateTaskPayload>) =>
       useMutation({
         mutationFn: (data) => createTaskFn(data),
         ...options
@@ -175,17 +176,17 @@ const TaskApi = {
   },
 
   toggleActive: {
-    useMutation: (options?: UseMutationOptions<any, AxiosError, ToggleActivePayload>) =>
+    useMutation: (options?: UseMutationOptions<unknown, AxiosError, ToggleActivePayload>) =>
       useMutation({
         mutationFn: (data) => toggleTaskActiveFn(data),
         ...options,
-        onSuccess: (data) => {
+        onSuccess: () => {
         },
       }),
   },
 
   assign: {
-    useMutation: (id: string, options?: UseMutationOptions<any, AxiosError, string>) =>
+    useMutation: (id: string, options?: UseMutationOptions<MutationMessageResponse, AxiosError, string>) =>
       useMutation({
         mutationFn: (collectorId) => assignUsersToTaskFn(id, collectorId),
         ...options,

@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import AssignModal from "./assign-modal";
 import { dataCollectorApi } from "@/api/data-collector";
 import { Pagination } from "@/components/pagination";
+import { ExportTask } from "./export-task";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const statusOptions = ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"];
@@ -28,30 +30,46 @@ const statusOptions = ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"];
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [ taskToAssign, setTaskToAssign] = useState<string | null>(null);
+    const [taskToAssign, setTaskToAssign] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<typeof statusOptions[number]>("PENDING");
 
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [totalPages, setTotalPages] = useState(0);
 
     const { data: tasksData, isLoading, isSuccess: isTaskSuccess } = TaskApi.getAll.useQuery({
-      page,
-      limit,
-      status: statusFilter
+        page,
+        limit,
+        status: statusFilter,
+        sortOrder,
     });
     const { data: dataCollectors, isSuccess: isDataCollectorsSuccess } = dataCollectorApi.getAll.useQuery();
     const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
 
 
     useEffect(() => {
-        if(isTaskSuccess) {
+        if (isTaskSuccess) {
             setTasks(tasksData.tasks);
             setTotalPages(tasksData.totalPages);
         }
     }, [isTaskSuccess, tasksData, limit]);
 
+
+    const handleSortOrderChange = (value: "asc" | "desc") => {
+        setSortOrder(value);
+        setTasks((currentTasks) =>
+            [...currentTasks].sort((firstTask, secondTask) => {
+                const firstTimestamp = new Date(firstTask.createdAt).getTime();
+                const secondTimestamp = new Date(secondTask.createdAt).getTime();
+
+                return value === "asc"
+                    ? firstTimestamp - secondTimestamp
+                    : secondTimestamp - firstTimestamp;
+            })
+        );
+    };
 
 
     return (
@@ -75,15 +93,33 @@ export default function TasksPage() {
 
             <IslandCard className="px-5 py-6 sm:px-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="relative w-full sm:max-w-sm">
-                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                            placeholder="Search tasks..."
-                            className="h-12 rounded-xl border-none bg-[#F3F8FF] pl-11"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                        />
+
+                    <div className="flex gap-4">
+                        <div className="relative w-full sm:max-w-sm">
+                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                placeholder="Search tasks..."
+                                className="h-12 rounded-xl border-none bg-[#F3F8FF] pl-11"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xs font-semibold uppercase  text-slate-500">
+                                Sort
+                            </span>
+                            <Select value={sortOrder} onValueChange={(value) => handleSortOrderChange(value as "asc" | "desc")}>
+                                <SelectTrigger className="shadow-none" >
+                                    <SelectValue placeholder="Sort order" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="desc">Newest first</SelectItem>
+                                    <SelectItem value="asc">Oldest first</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
+
                     <div className="flex flex-wrap gap-2">
                         {statusOptions.map(
                             (status) => (
@@ -190,6 +226,11 @@ export default function TasksPage() {
                                             {task._count.submissions ?? 0} items
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
+                                            {
+                                                task.status === "APPROVED" &&
+                                                <ExportTask taskId={task.id} />
+                                            }
+                                            { task.status !== "PENDING" &&
                                             <Link
                                             href={`/dashboard/task/${task.id}`}
                                             >
@@ -200,16 +241,21 @@ export default function TasksPage() {
                                                 Submissions
                                             </Button>
                                             </Link>
+                                            }
                                             {
-                                             task.isAssigned ?
-                                                <Badge> Assigned </Badge> :
-                                            <Button
-                                                variant="ghost"
-                                                className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
-                                                onClick={() => { setTaskToAssign(task.id); setIsAssignModalOpen(true) }}
-                                            >
-                                                Assign
-                                            </Button>
+                                                task.status === "PENDING" && (
+                                                    task.isAssigned ? (
+                                                        <Badge>Assigned</Badge>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
+                                                            onClick={() => { setTaskToAssign(task.id); setIsAssignModalOpen(true); }}
+                                                        >
+                                                            Assign
+                                                        </Button>
+                                                    )
+                                                )
                                             }
                                         </TableCell>
                                     </TableRow>
@@ -243,7 +289,7 @@ export default function TasksPage() {
                 <AssignModal
                     open={isAssignModalOpen}
                     users={dataCollectors}
-                    taskId={ taskToAssign as string}
+                    taskId={taskToAssign as string}
                     onClose={() => setIsAssignModalOpen(false)}
                 />}
         </div>
