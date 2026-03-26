@@ -22,19 +22,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { TaskStatus } from "@/api/task";
 import { toast } from "sonner";
 
 type TaskReviewPageProps = {
   params: Promise<{ id: string }>;
 };
-
-const reviewStatuses: Array<Extract<TaskStatus, "APPROVED" | "REJECTED">> = [
-  "APPROVED",
-  "REJECTED",
-];
 
 export default function TaskReviewPage({ params }: TaskReviewPageProps) {
   const router = useRouter();
@@ -42,8 +44,8 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
   const taskId = id as string;
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [reviewerNote, setReviewerNote] = useState("");
-  const [reviewStatus, setReviewStatus] = useState<"APPROVED" | "REJECTED">("APPROVED");
+  const [rejectionNote, setRejectionNote] = useState<string | null>(null);
+  const [activeReviewAction, setActiveReviewAction] = useState<"approve" | "reject" | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +61,8 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
     taskId,
     {
       onSuccess: () => {
+        setActiveReviewAction(null);
+        setRejectionNote(null);
         toast.success("Review submitted.");
         void refetch();
       },
@@ -70,25 +74,12 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
 
   const task = data?.task;
   const submissions = task?.submissions ?? [];
-
-  const selectedSubmission = submissions[selectedIndex] ?? null;
+  const defaultRejectionNote = task?.status === "REJECTED" ? task.reviewerNote ?? "" : "";
+  const rejectionNoteValue = rejectionNote ?? defaultRejectionNote;
+  const currentSelectedIndex =
+    submissions.length === 0 ? 0 : Math.min(selectedIndex, submissions.length - 1);
+  const selectedSubmission = submissions[currentSelectedIndex] ?? null;
   const resolvedSelectedUploadUrl = selectedSubmission?.uploadUrl ?? "";
-
-  useEffect(() => {
-    if (!task) return;
-
-    setReviewerNote(task.reviewerNote ?? "");
-    setReviewStatus(task.status === "REJECTED" ? "REJECTED" : "APPROVED");
-  }, [task]);
-
-  useEffect(() => {
-    if (submissions.length === 0) {
-      setSelectedIndex(0);
-      return;
-    }
-
-    setSelectedIndex((currentIndex) => Math.min(currentIndex, submissions.length - 1));
-  }, [submissions.length]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -103,11 +94,11 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
   }, []);
 
   const goToPrevious = () => {
-    setSelectedIndex((currentIndex) => Math.max(currentIndex - 1, 0));
+    setSelectedIndex(Math.max(currentSelectedIndex - 1, 0));
   };
 
   const goToNext = () => {
-    setSelectedIndex((currentIndex) => Math.min(currentIndex + 1, submissions.length - 1));
+    setSelectedIndex(Math.min(currentSelectedIndex + 1, submissions.length - 1));
   };
 
   const toggleFullscreen = async () => {
@@ -126,15 +117,15 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
     }
   };
 
-  const handleReviewSubmit = () => {
-    if (reviewStatus === "REJECTED" && !reviewerNote.trim()) {
+  const handleReviewSubmit = (status: "APPROVED" | "REJECTED") => {
+    if (status === "REJECTED" && !rejectionNoteValue.trim()) {
       toast.error("A reviewer note is required when rejecting a task.");
       return;
     }
 
     submitReview({
-      status: reviewStatus,
-      reviewerNote: reviewerNote.trim(),
+      status,
+      reviewerNote: status === "REJECTED" ? rejectionNoteValue.trim() : "",
     });
   };
 
@@ -233,7 +224,7 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                       type="button"
                       className={cn(
                         "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
-                        selectedIndex === index
+                        currentSelectedIndex === index
                           ? "border-slate-900 bg-slate-900 text-white"
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       )}
@@ -243,23 +234,23 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                         <div
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-full",
-                            selectedIndex === index ? "bg-white/15" : "bg-slate-100"
+                            currentSelectedIndex === index ? "bg-white/15" : "bg-slate-100"
                           )}
                         >
                           {submission.mediaType === "IMAGE" ? (
                             <FileImage
-                              className={cn( "h-4 w-4", selectedIndex === index ? "text-white" : "text-slate-600" )}
+                              className={cn("h-4 w-4", currentSelectedIndex === index ? "text-white" : "text-slate-600")}
                             />
                           ) : (
                             <Video
-                              className={cn( "h-4 w-4", selectedIndex === index ? "text-white" : "text-slate-600")}
+                              className={cn("h-4 w-4", currentSelectedIndex === index ? "text-white" : "text-slate-600")}
                             />
                           )}
                         </div>
                         <div>
                           <p className="text-sm font-semibold">Submission {index + 1}</p>
                           <p
-                            className={cn( "text-xs uppercase tracking-[0.18em]",selectedIndex === index ? "text-slate-300" : "text-slate-500")}
+                            className={cn("text-xs uppercase tracking-[0.18em]", currentSelectedIndex === index ? "text-slate-300" : "text-slate-500")}
                           >
                             {submission.mediaType}
                           </p>
@@ -267,7 +258,7 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                       </div>
 
                       <span
-                        className={cn("text-xs font-semibold", selectedIndex === index ? "text-slate-300" : "text-slate-400" )}
+                        className={cn("text-xs font-semibold", currentSelectedIndex === index ? "text-slate-300" : "text-slate-400")}
                       >
                         {index + 1}/{submissions.length}
                       </span>
@@ -286,7 +277,7 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                     <CardTitle>Preview</CardTitle>
                     <CardDescription>
                       {selectedSubmission
-                        ? `Viewing ${selectedIndex + 1} of ${submissions.length}`
+                        ? `Viewing ${currentSelectedIndex + 1} of ${submissions.length}`
                         : "Select a submission to start reviewing."}
                     </CardDescription>
                   </div>
@@ -323,7 +314,7 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                       <button
                         type="button"
                         onClick={goToPrevious}
-                        disabled={selectedIndex === 0}
+                        disabled={currentSelectedIndex === 0}
                         aria-label="Previous submission"
                         className="absolute left-4 top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -333,7 +324,7 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                       <button
                         type="button"
                         onClick={goToNext}
-                        disabled={selectedIndex >= submissions.length - 1}
+                        disabled={currentSelectedIndex >= submissions.length - 1}
                         aria-label="Next submission"
                         className="absolute right-4 top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -344,7 +335,7 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
                         resolvedSelectedUploadUrl ? (
                           <img
                             src={resolvedSelectedUploadUrl}
-                            alt={`Submission ${selectedIndex + 1}`}
+                            alt={`Submission ${currentSelectedIndex + 1}`}
                             className="max-h-full max-w-full object-contain"
                           />
                         ) : (
@@ -380,65 +371,168 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
               </CardHeader>
 
               <CardContent className="space-y-5">
-                <div className="space-y-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Status
+                    Current Status
                   </p>
-                  <div className="flex gap-2">
-                    {reviewStatuses.map((status) => (
-                      <Button
-                        key={status}
-                        type="button"
-                        variant={reviewStatus === status ? "default" : "outline"}
-                        className={cn(
-                          "flex-1 rounded-full",
-                          reviewStatus === status && status === "APPROVED" && "bg-emerald-600 hover:bg-emerald-500",
-                          reviewStatus === status && status === "REJECTED" && "bg-red-600 hover:bg-red-500"
-                        )}
-                        onClick={() => setReviewStatus(status)}
-                      >
-                        {status === "APPROVED" ? "Approve" : "Reject"}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="reviewer-note"
-                    className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                  <Badge
+                    className={cn(
+                      "mt-3 rounded-full px-3 py-1 text-white",
+                      task.status === "APPROVED"
+                        ? "bg-emerald-600"
+                        : task.status === "REJECTED"
+                          ? "bg-red-600"
+                          : "bg-amber-500"
+                    )}
                   >
-                    Reviewer Note
-                  </label>
-                  <Textarea
-                    id="reviewer-note"
-                    value={reviewerNote}
-                    onChange={(event) => setReviewerNote(event.target.value)}
-                    placeholder={
-                      reviewStatus === "REJECTED"
-                        ? "Add a short note explaining why this task is rejected"
-                        : "Add a short note for the collector"
-                    }
-                    className="min-h-32 rounded-2xl border-slate-200 bg-white"
-                  />
-                  {reviewStatus === "REJECTED" && !reviewerNote.trim() && (
-                    <p className="text-sm text-red-600">
-                      A reviewer note is required when rejecting a task.
-                    </p>
+                    {task.status}
+                  </Badge>
+
+                  {task.reviewerNote && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Reviewer Note
+                      </p>
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                        {task.reviewerNote}
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                <Button
-                  className="w-full rounded-full"
-                  onClick={handleReviewSubmit}
-                  disabled={
-                    isSubmittingReview ||
-                    submissions.length === 0 ||
-                    (reviewStatus === "REJECTED" && !reviewerNote.trim())
-                  }
-                >
-                  {isSubmittingReview ? "Submitting..." : "Submit Review"}
-                </Button>
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <Popover
+                      open={activeReviewAction === "approve"}
+                      onOpenChange={(open) => {
+                        setActiveReviewAction(open ? "approve" : null);
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          className="w-full rounded-full bg-emerald-600 hover:bg-emerald-500"
+                          disabled={isSubmittingReview || submissions.length === 0}
+                        >
+                          Approve
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="left"
+                        align="end"
+                        sideOffset={12}
+                        collisionPadding={16}
+                        className="w-80 rounded-2xl border-slate-200 p-5"
+                      >
+                        <PopoverHeader>
+                          <PopoverTitle>Approve this task?</PopoverTitle>
+                          <PopoverDescription>
+                            This will mark the task as approved. Are you sure?
+                          </PopoverDescription>
+                        </PopoverHeader>
+
+                        <div className="mt-4 flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setActiveReviewAction(null)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            className="bg-emerald-600 hover:bg-emerald-500"
+                            onClick={() => handleReviewSubmit("APPROVED")}
+                            disabled={isSubmittingReview}
+                          >
+                            {isSubmittingReview ? "Submitting..." : "Yes, approve"}
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    <Popover
+                      open={activeReviewAction === "reject"}
+                      onOpenChange={(open) => {
+                        setActiveReviewAction(open ? "reject" : null);
+                        if (!open) {
+                          setRejectionNote(null);
+                        }
+                      }}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          disabled={isSubmittingReview || submissions.length === 0}
+                        >
+                          Reject
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="left"
+                        align="end"
+                        sideOffset={12}
+                        collisionPadding={16}
+                        className="w-96 rounded-2xl border-slate-200 p-5"
+                      >
+                        <PopoverHeader>
+                          <PopoverTitle>Reject this task</PopoverTitle>
+                          <PopoverDescription>
+                            Add a rejection note to proceed.
+                          </PopoverDescription>
+                        </PopoverHeader>
+
+                        <div className="mt-4 space-y-2">
+                          <label
+                            htmlFor="rejection-note"
+                            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                          >
+                            Rejection Note
+                          </label>
+                          <Textarea
+                            id="rejection-note"
+                            value={rejectionNoteValue}
+                            onChange={(event) => setRejectionNote(event.target.value)}
+                            placeholder="Add a short note explaining why this task is rejected"
+                            className="min-h-28 rounded-2xl border-slate-200 bg-white"
+                            autoFocus
+                          />
+                          {!rejectionNoteValue.trim() && (
+                            <p className="text-sm text-red-600">
+                              A rejection note is required.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setActiveReviewAction(null)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            className="bg-red-600 hover:bg-red-500"
+                            onClick={() => handleReviewSubmit("REJECTED")}
+                            disabled={isSubmittingReview || !rejectionNoteValue.trim()}
+                          >
+                            {isSubmittingReview ? "Submitting..." : "Yes, reject"}
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {submissions.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      A submission is required before you can review this task.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
