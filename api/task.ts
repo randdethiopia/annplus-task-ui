@@ -132,6 +132,10 @@ export async function assignUsersToTaskFn(id: string | null, collectorId: string
   return (await axios.post(`/api/tasks/assign/${id}`, { collectorId })).data;
 }
 
+export async function reAssignRejectedTask(id: string | null, collectorId: string) {
+  return (await axios.post(`/api/tasks/reassign/${id}`, { collectorId })).data;
+}
+
 export async function reviewTaskFn(id: string, data: ReviewTaskInput) {
   return (await axios.post(`/api/tasks/review/${id}`, data)).data;
 }
@@ -195,8 +199,17 @@ const TaskApi = {
         mutationFn: (collectorId) => assignUsersToTaskFn(id, collectorId),
         ...options,
         onSuccess: (data) => {
-          toast("LOADING");
-          toast(data.message);
+          toast("Task assigned successfully");
+        },
+      }),
+  },
+  reassign: {
+    useMutation: (id: string, options?: UseMutationOptions<MutationMessageResponse, AxiosError, string>) =>
+      useMutation({
+        mutationFn: (collectorId) => reAssignRejectedTask(id, collectorId),
+        ...options,
+        onSuccess: (data) => {
+          toast("Task reassigned successfully");
         },
       }),
   },

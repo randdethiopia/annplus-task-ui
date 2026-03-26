@@ -42,6 +42,7 @@ const statusOptions = ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"];
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [taskToAssign, setTaskToAssign] = useState<string | null>(null);
+    const [isReassign, setIsReassign] = useState<boolean>(false);
     const [taskToArchive, setTaskToArchive] = useState<Task | null>(null);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<typeof statusOptions[number]>("PENDING");
@@ -259,30 +260,30 @@ export default function TasksPage() {
                                         </TableCell>
                                         <TableCell className="pr-4 text-right">
                                             {
-                                                    task.status === "APPROVED" &&
-                                                    <>
+                                                task.status === "APPROVED" &&
+                                                <>
                                                     <ExportTask taskId={task.id} />
                                                     <Button
-                                                    variant="ghost"
-                                                    className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
-                                                    onClick={() => setTaskToArchive(task)}
-                                                >
-                                                    <Archive className="mr-2 h-4 w-4" />
-                                                    Archive
-                                                </Button>
+                                                        variant="ghost"
+                                                        className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
+                                                        onClick={() => setTaskToArchive(task)}
+                                                    >
+                                                        <Archive className="mr-2 h-4 w-4" />
+                                                        Archive
+                                                    </Button>
                                                 </>
                                             }
-                                            { task.status !== "PENDING" &&
-                                            <Link
-                                            href={`/dashboard/task/${task.id}`}
-                                            >
-                                             <Button
-                                                variant="ghost"
-                                                className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
-                                            >
-                                                Submissions
-                                            </Button>
-                                            </Link>
+                                            {task.status !== "PENDING" &&
+                                                <Link
+                                                    href={`/dashboard/task/${task.id}`}
+                                                >
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
+                                                    >
+                                                        Submissions
+                                                    </Button>
+                                                </Link>
                                             }
                                             {
                                                 task.status === "PENDING" && (
@@ -295,6 +296,23 @@ export default function TasksPage() {
                                                             onClick={() => { setTaskToAssign(task.id); setIsAssignModalOpen(true); }}
                                                         >
                                                             Assign
+                                                        </Button>
+                                                    )
+                                                )
+                                            }
+                                            {
+                                                task.status === "REJECTED" && (
+                                                    (
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="rounded-xl bg-[#E2EDF8] hover:bg-blue-100 px-4 mx-4"
+                                                            onClick={() => { 
+                                                                setIsReassign(true);
+                                                                setTaskToAssign(task.id); 
+                                                                setIsAssignModalOpen(true);
+                                                             }}
+                                                        >
+                                                            Re-Assign
                                                         </Button>
                                                     )
                                                 )
@@ -333,6 +351,7 @@ export default function TasksPage() {
                     users={dataCollectors}
                     taskId={taskToAssign as string}
                     onClose={() => setIsAssignModalOpen(false)}
+                    isReassign={isReassign}
                 />}
 
             <AlertDialog
