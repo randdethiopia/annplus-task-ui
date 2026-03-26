@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collector } from "@/api/data-collector";
-import TaskApi from "@/api/task";
+import api from "@/api";
 
 
 
@@ -20,15 +20,18 @@ type AssignModalProps = {
   open: boolean;
   users: Collector[];
   taskId: string | null;
+  isReassign?: boolean;
   onClose: () => void;
 };
 
 
 
-const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId }) => {
+const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId, isReassign }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-   const { mutate: assignTask, isPending } = TaskApi.assign.useMutation(taskId ?? "");
+  const { mutate: assignTask, isPending: isAssignPending } = api.task.assign.useMutation(taskId ?? "");
+  const { mutate: reAssignTask, isPending: isReAssignPending } = api.task.reassign.useMutation(taskId ?? "");
+
 
   useEffect(() => {
     if (!open) setSelectedId(null);
@@ -41,9 +44,12 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!selectedId) return;
-    console.log("Assigning task to user ID:", selectedId);
 
-    assignTask(selectedId);
+    if (isReassign) {
+      reAssignTask(selectedId);
+    } else {
+      assignTask(selectedId);
+    }
     onClose();
   };
 
@@ -52,7 +58,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId 
       <DialogContent className="max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Assign User</DialogTitle>
+            <DialogTitle>{isReassign ? "Re-Assign rejected task to user" : "Assign User"}</DialogTitle>
             <DialogDescription>Select a user to assign to this task.</DialogDescription>
           </DialogHeader>
 
@@ -95,7 +101,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId 
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!selectedId || isPending}>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={!selectedId || isAssignPending || isReAssignPending}>
                 Assign
               </Button>
             </div>
