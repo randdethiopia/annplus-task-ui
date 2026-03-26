@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -40,6 +41,7 @@ type TaskReviewPageProps = {
 
 export default function TaskReviewPage({ params }: TaskReviewPageProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = use(params);
   const taskId = id as string;
 
@@ -54,7 +56,6 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
     isLoading,
     isError,
     isSuccess,
-    refetch,
   } = api.task.getById.useQuery(taskId);
 
   const { mutate: submitReview, isPending: isSubmittingReview } = api.task.review.useMutation(
@@ -63,8 +64,9 @@ export default function TaskReviewPage({ params }: TaskReviewPageProps) {
       onSuccess: () => {
         setActiveReviewAction(null);
         setRejectionNote(null);
+        void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        void queryClient.invalidateQueries({ queryKey: ["collector-tasks"] });
         toast.success("Review submitted.");
-        void refetch();
       },
       onError: () => {
         toast.error("Failed to submit review.");
