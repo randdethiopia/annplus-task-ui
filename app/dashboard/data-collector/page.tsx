@@ -48,14 +48,20 @@ export default function DataCollectorsPage() {
 
 		resetPassword(targetCollector.id, {
 			onSuccess: (response) => {
-				toast.success(
-					response?.message || `Password reset for ${targetCollector.name}`,
-					{ id: toastId }
-				);
+				const successMessage = response?.message ?? "Password reset successful";
+				const description = response?.temporaryPassword
+					? `The new password for ${targetCollector.name} is: ${response.temporaryPassword}`
+					: `Password reset for ${targetCollector.name}. Check Telegram for the new password.`;
+				toast.success(successMessage, {
+					id: toastId,
+					description,
+					duration: 10000,
+				});
 				setCollectorToReset(null);
 			},
-			onError: () => {
-				toast.error("Failed to reset password", { id: toastId });
+			onError: (error: any) => {
+				const message = error?.response?.data?.message ?? "Failed to reset password";
+				toast.error(message, { id: toastId });
 			},
 		});
 	};
