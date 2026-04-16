@@ -10,12 +10,12 @@ export default function Home() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/datacollector/dashboard')
+      router.replace('/datacollector/tasks')
       return
     }
 
     router.replace('/auth/datacollector')
-  }, [router])
+  }, [isAuthenticated, router])
 
   return <main className="min-h-screen bg-background" />
 }
