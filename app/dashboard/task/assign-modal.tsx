@@ -13,6 +13,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collector } from "@/api/data-collector";
 import api from "@/api";
+import { toast } from "sonner";
 
 
 
@@ -45,12 +46,30 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId,
     e?.preventDefault();
     if (!selectedId) return;
 
+    const toastId = toast.loading(
+      isReassign ? "Reassigning task..." : "Assigning task..."
+    );
+
+    const mutationOptions = {
+      onSuccess: () => {
+        toast.success(
+          isReassign ? "Task reassigned successfully" : "Task assigned successfully",
+          { id: toastId }
+        );
+        onClose();
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error?.response?.data?.message ?? "Something went wrong";
+        toast.error(errorMessage, { id: toastId });
+      },
+    };
+
     if (isReassign) {
-      reAssignTask(selectedId);
+      reAssignTask(selectedId, mutationOptions);
     } else {
-      assignTask(selectedId);
+      assignTask(selectedId, mutationOptions);
     }
-    onClose();
   };
 
   return (
@@ -58,7 +77,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ open, users, onClose, taskId,
       <DialogContent className="max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{isReassign ? "Re-Assign rejected task to user" : "Assign User"}</DialogTitle>
+            <DialogTitle>{isReassign ? "Reassign Task" : "Assign User"}</DialogTitle>
             <DialogDescription>Select a user to assign to this task.</DialogDescription>
           </DialogHeader>
 

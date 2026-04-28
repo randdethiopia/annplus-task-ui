@@ -40,6 +40,14 @@ export default function LoginPage() {
     setServerError(null);
     try {
       const data = await mutateAsync(input);
+      const normalizedRole = (data.user?.role ?? "").toUpperCase();
+      if (normalizedRole === "COLLECTOR" || normalizedRole === "DATA_COLLECTOR") {
+        const message = "Please use the Data Collector login page.";
+        setServerError(message);
+        toast.error(message, { id: toastId });
+        router.push("/auth/datacollector");
+        return;
+      }
       setAccessToken(data.user.id, data.token, data.user.role);
       toast.success("Signed in successfully", { id: toastId });
       router.push("/dashboard/task");
